@@ -1,0 +1,25 @@
+Scenario-Based Learning (SBL) in Education
+
+(“scenario-based learning” OR “SBL”) AND (education OR pedagogy) AND (effective OR impactful)
+(“scenario-based learning” OR “SBL”) AND (student OR learner) AND (engagement OR participation OR “learning outcomes” OR “knowledge application”)
+-----------------------------------------------------------------------------------------------------------------------
+Personalized Learning with AI
+
+(“adaptive learning” OR “personalized learning” OR “customized learning”) AND (AI OR “artificial intelligence”) AND (“learning environments” OR “education systems”)
+(AI OR “artificial intelligence”) AND (tutoring OR “student guidance”)
+-----------------------------------------------------------------------------------------------------------------------
+LLM in Education
+
+(“large language models” OR LLM OR “generative AI”) AND (education OR “learning systems”) AND (“real-time feedback” OR “dynamic feedback”)
+(“large language models” OR LLM OR “generative AI”) AND (“educational systems” OR “learning platforms”) AND (tutoring OR “student guidance”)
+-----------------------------------------------------------------------------------------------------------------------
+Pedagogical Integration with LLM
+
+(“pedagogical integration” OR “education theories”) AND (“large language models” OR LLM OR “generative AI”) AND (learning OR tutoring)
+(“pedagogy” OR “teaching strategies”) AND (“large language models” OR LLM OR “generative AI”) AND (“learning outcomes” OR “student engagement”)
+(“pedagogical models” OR “educational strategies”) AND (“large language models” OR LLM OR “generative AI”) AND (learning OR “student support”)
+-----------------------------------------------------------------------------------------------------------------------
+LMM and Scenario-Based Learning Integration
+
+(“scenario-based learning” OR “SBL”) AND (“large language models” OR LLM OR “generative AI”)
+(“large language models” OR LLM OR “generative AI”) AND (“scenario-based learning” OR “learning scenarios”) AND (“real-time guidance” OR “adaptive feedback”)
