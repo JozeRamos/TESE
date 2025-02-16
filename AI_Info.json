@@ -1,0 +1,44 @@
+{
+  "scenario": {
+    "name": "",  // The name of the scenario.
+    "description": "",  // A brief overview of the scenario.
+    "role": {
+      "user_role": "",  // The role the learner plays.
+      "ai_role": "",  // The AI's role in the scenario.
+      "ai_persona": ""  // The personality/style of the AI agent.
+    },
+    "stages": [
+      {
+        "stage_number": 1,
+        "description": "",  // The situation presented to the user.
+        "ai_dialogue": {
+          "initial_prompt": "",  // The AI's first message for this stage.
+          "hints": [],  // A list of hints if the user struggles.
+          "adaptive_responses": {
+            "correct": "",  // AI's response when the correct action is taken.
+            "incorrect": ""  // AI's response when an incorrect action is taken.
+          }
+        },
+        "expected_inputs": []  // List of correct responses that advance the scenario.
+      }
+    ],
+    "end_stage": {
+      "description": "",  // The concluding message of the scenario.
+      "ai_dialogue": {
+        "summary_prompt": "",  // AI's closing remarks.
+        "performance_feedback": {
+          "high": "",  // Feedback for high performance.
+          "medium": "",  // Feedback for medium performance.
+          "low": ""  // Feedback for low performance.
+        },
+        "next_steps": ""  // AI suggests retrying or progressing.
+      }
+    },
+    "progress_tracking": {
+      "current_stage": 1,  // The user's current stage.
+      "completed_stages": [],  // Stages the user has finished.
+      "user_responses": [],  // Tracks user inputs.
+      "score": 0  // Tracks performance.
+    }
+  }
+}
