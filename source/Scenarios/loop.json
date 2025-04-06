@@ -1,0 +1,48 @@
+{
+    "ai_role": "Virtual Mentor",
+    "user_role": "Junior Developer",
+    "scenario_name": "Debugging a Recursive Function",
+    "ai_persona": "Experienced Software Engineer with a specialization in algorithms and debugging",
+    "place": "A fast-paced software development office where you're working on a critical backend feature",
+    "task": "Identify and fix a faulty recursive function designed to calculate the factorial of a number, ensuring it correctly handles base cases and recursive calls.",
+    "format": "Step-by-step text-based scenario where you troubleshoot and refine the recursive function through logical reasoning and debugging techniques.",
+    "exemplar": "User: 'Check the base case' → AI: 'Good! The base case prevents infinite recursion. What's your next step?'",
+    
+    "stage_description": "Your lead developer has assigned you a debugging task: a recursive function intended to compute factorials is running indefinitely when called with `n=5`. You need to investigate and fix the issue. What's your first step?",
+    "hint": "Think about what prevents a recursive function from going on forever.",
+    "positive_feedback": "You're on the right track! Recursion needs a well-defined stopping point.",
+    "constructive_feedback": "Something is missing that tells the function when to stop. What could it be?",
+    "next_stage_condition": "Proceed only if the user correctly identifies a flaw in the function's base case or recursive step.",
+    
+    "stages": [
+        {
+            "description": "The function takes an integer `n` but runs indefinitely when `n=5`, consuming system resources and eventually causing a stack overflow.",
+            "hint": "Ask yourself: under what condition should the function stop calling itself?",
+            "correct_response": "Check if the base case is missing or incorrectly defined.",
+            "positive_feedback": "Nice work! A function that keeps calling itself forever is a sign something isn't telling it to stop.",
+            "incorrect_response": "Modify the recursive call first.",
+            "constructive_feedback": "Think about why the function doesnt know when to stop. What would tell it to halt?"
+        },
+        {
+            "description": "You have identified that the function lacks a correct base case. Now, you need to define an appropriate stopping condition.",
+            "hint": "Consider the smallest input that doesnt require further breakdown.",
+            "correct_response": "Ensure the function returns `1` when `n` is `0`.",
+            "positive_feedback": "Good thinking! A solid stopping condition keeps recursion in check.",
+            "incorrect_response": "Set the base case to return `0` when `n=1`.",
+            "constructive_feedback": "Not quite! The base case should reflect a fundamental property of the problem."
+        },
+        {
+            "description": "The base case is now correct, but the function still isn't returning the expected factorial values. It's time to verify the recursive step.",
+            "hint": "Each step should bring you closer to the stopping condition while preserving the logic of the operation.",
+            "correct_response": "Ensure the function correctly multiplies `n * factorial(n-1)`.",
+            "positive_feedback": "Nice! Each step should mirror how the problem naturally reduces itself.",
+            "incorrect_response": "Subtract `2` instead of `1` in the recursive call.",
+            "constructive_feedback": "Look carefully—does each step truly lead to the stopping point, or is something being skipped?"
+        }
+    ],
+    
+    "tones": [
+        "Professional and supportive, providing logical guidance without giving away direct answers.",
+        "Clear and engaging, encouraging problem-solving through thoughtful questioning."
+    ]
+}

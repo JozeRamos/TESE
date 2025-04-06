@@ -1,5 +1,5 @@
 from tkinter import *
-
+# StreamLit
 class ChatbotGUI:
     def __init__(self, response_function):
         self.response_function = response_function
@@ -33,14 +33,14 @@ class ChatbotGUI:
     def display_initial_message(self):
         initial_message = self.response_function("")
         self.txt.insert(END, initial_message + "\n")
-        self.txt.see(END)  # Auto-scroll to the end
+        self.txt.see(END)
 
     def send_message(self):
         user_input = self.e.get()
 
         response = self.response_function(user_input)
         self.txt.insert(END, "\n" + response)
-        self.txt.see(END)  # Auto-scroll to the end
+        self.txt.see(END)
 
         self.e.delete(0, END)
 

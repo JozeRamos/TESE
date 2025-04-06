@@ -1,29 +1,37 @@
 from View.view import ChatbotGUI
+from Controller.controller import LLM
 
 class Chatbot:
     def __init__(self):
-        self.stage = 0
+        self.stage = "Initial"
+        self.llm = None
 
     def get_response(self, user_input):
         user = user_input.lower()
-        message = "You -> " + user_input + "\n"
         
-        if self.stage == 0:
-            self.stage = 1
-            return "Bot -> Choose a scenario:\n1. Option 1\n2. Option 2\n3. Option 3"
+        if self.stage == "Initial":
+            self.stage = "Options"
+            return "Bot -> Choose a scenario:\n1. Loop Scenario 1\n2. Create scenario 2\n"
         
-        elif self.stage == 1:
+        elif self.stage == "Options":
+            message = "You -> " + user_input + "\n"
             if user == "1":
-                self.stage = 1
-                return message + "Bot -> Hi there, how can I help?1"
+                self.stage = "loop"
+                self.llm = LLM('Scenarios\loop.json')
+                
+                return message + "Bot -> Loop scenario selected. Here is the scenario description:\n" + self.llm.get_stage_description()
             elif user == "2":
-                self.stage = 1
-                return message + "Bot -> Hi there, how can I help?2"
-            elif user == "3":
-                self.stage = 1
-                return message + "Bot -> Hi there, how can I help?3"
+                self.stage = "create"
+                return message + "Bot -> Scenario creation selected."
             else:
-                return message + "Bot -> Invalid option. Please choose 1, 2, or 3."
+                return message + "Bot -> Invalid option. Please choose 1 or 2."
+            
+        elif self.stage == "loop":
+            if user == "1":
+                message = "Your -> " + user_input + "\nBot -> " + self.llm.logic("What is the next stage?")
+                return message
+            else:
+                return "Bot -> Invalid command. Please enter 'hint', 'positive feedback', 'constructive feedback', or 'next stage'."
 
 def main():
     chatbot = Chatbot()
