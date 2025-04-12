@@ -38,8 +38,8 @@ class LLM:
                                 self.tones[0], self.tones[1])
         
 
-        self.chat_history.append(initial[0])
-        self.chat_history.append(initial[1])
+        self.chat_history.append("Initial prompt: " + initial[0] + "\n")
+        self.chat_history.append("LLM response: " + initial[1] + "\n")
 
 
     def get_ai_role(self):
@@ -141,18 +141,22 @@ class LLM:
 
 
     def logic(self, user_input):
+        temp_text = "Here are the previous messages in the conversation:\n"
+        for i in self.chat_history:
+            temp_text += i
+        self.chat_history.append("User message: (" + user_input + ")\n")
         chat = self.client.chat
         v = self.is_question(chat, self.user_role, self.scenario_name, user_input)        
-        Cot_answer = self.generate_cot_response(chat, self.user_role, self.ai_role, self.scenario_name, user_input, v)
-        self_consistency1 = self.self_consistency(chat, self.user_role, self.scenario_name, user_input, Cot_answer, 3)
-        feedback1 = self.feedback(chat, self.user_role, self.scenario_name, user_input, self_consistency1)
-        refine1 = self.refine(chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1)
-        feedback2 = self.feedback(chat, self.user_role, self.scenario_name, user_input, refine1)
-        refine2 = self.refine(chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2)
+        Cot_answer = self.generate_cot_response(chat, self.user_role, self.ai_role, self.scenario_name, user_input, v, temp_text)
+        self_consistency1 = self.self_consistency(chat, self.user_role, self.scenario_name, user_input, Cot_answer, 3, temp_text)
+        feedback1 = self.feedback(chat, self.user_role, self.scenario_name, user_input, self_consistency1, temp_text)
+        refine1 = self.refine(chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1, temp_text)
+        feedback2 = self.feedback(chat, self.user_role, self.scenario_name, user_input, refine1, temp_text)
+        refine2 = self.refine(chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2, temp_text)
         if "false" in v.lower():
-            next_steps = self.next_steps(chat, self.user_role, self.ai_role, self.scenario_name, user_input, refine2, 1)
-            return refine2 + "\nNext Steps: " + next_steps
-
+            next_steps = self.next_steps(chat, self.user_role, self.ai_role, self.scenario_name, user_input, refine2, 1, temp_text)
+            refine2 =  refine2 + "\nNext Steps: " + next_steps
+        self.chat_history.append("LLM message: (" + refine2 + ")\n")
         return refine2
     
 
@@ -193,16 +197,17 @@ class LLM:
         ### Output:
         - Return either **True** or **False** based on whether the user's input is a question or not.
         """
+
+
         response = chat.completions.create(
             model="deepseek-r1-distill-llama-70b",
             messages=[{"role": "user", "content": user_input_prompt}]
         )
-
         return response.choices[0].message.content
     
     
-    def generate_cot_response(self, chat, user_role, ai_role, scenario_name, user_input, is_question):
-        cot_agent_prompt = f"""
+    def generate_cot_response(self, chat, user_role, ai_role, scenario_name, user_input, is_question, chat_history):
+        cot_agent_prompt = f"""\nCurrent Prompt:
         You are an AI agent using **Chain-of-Thought (CoT) reasoning** to analyze and respond to the user's input in an interactive **scenario-based learning environment**.
 
         ### Context:
@@ -263,14 +268,14 @@ class LLM:
 
         response = chat.completions.create(
             model="deepseek-r1-distill-llama-70b",
-            messages=[{"role": "user", "content": cot_agent_prompt}]
+            messages=[{"role": "user", "content": chat_history + cot_agent_prompt}]
         )
 
         return response.choices[0].message.content
     
     
-    def self_consistency(self, chat, user_role, scenario_name, user_input, previous_ai_response, num_variations):
-        self_consistency_prompt = f"""
+    def self_consistency(self, chat, user_role, scenario_name, user_input, previous_ai_response, num_variations, chat_history):
+        self_consistency_prompt = f"""\nCurrent Prompt:
         You are ensuring **self-consistency** in your response within an interactive **scenario-based learning environment**.
 
         ### Context:
@@ -327,13 +332,13 @@ class LLM:
         """
         response = chat.completions.create(
             model="deepseek-r1-distill-llama-70b",
-            messages=[{"role": "user", "content": self_consistency_prompt}]
+            messages=[{"role": "user", "content": chat_history + self_consistency_prompt}]
         )
         return response.choices[0].message.content
     
     
-    def feedback(self, chat, user_role, scenario_name, user_input, previous_ai_response):
-        feedback_prompt = f"""
+    def feedback(self, chat, user_role, scenario_name, user_input, previous_ai_response, chat_history):
+        feedback_prompt = f"""\nCurrent Prompt:
         You are evaluating your previous response in an interactive **scenario-based learning** environment.
 
         ### Context:
@@ -358,12 +363,12 @@ class LLM:
         """
         response = chat.completions.create(
             model="deepseek-r1-distill-llama-70b",
-            messages=[{"role": "user", "content": feedback_prompt}]
+            messages=[{"role": "user", "content": chat_history + feedback_prompt}]
         )
         return response.choices[0].message.content
 
-    def refine(self, chat, previous_ai_response, user_role, ai_role, scenario_name, user_input, self_feedback):
-        refinement_prompt = f"""
+    def refine(self, chat, previous_ai_response, user_role, ai_role, scenario_name, user_input, self_feedback, chat_history):
+        refinement_prompt = f"""\nCurrent Prompt:
         You are refining your previous response based on self-evaluation.
 
         ### Context:
@@ -385,13 +390,13 @@ class LLM:
         """
         response = chat.completions.create(
             model="deepseek-r1-distill-llama-70b",
-            messages=[{"role": "user", "content": refinement_prompt}]
+            messages=[{"role": "user", "content": chat_history + refinement_prompt}]
         )
         return response.choices[0].message.content
     
     
-    def next_steps(self, chat, user_role, ai_role, scenario_name, user_action, previous_ai_response, current_stage):
-        hint_prompt = f"""
+    def next_steps(self, chat, user_role, ai_role, scenario_name, user_action, previous_ai_response, current_stage, chat_history):
+        hint_prompt = f"""\nCurrent Prompt:
         You are guiding the user through an interactive **scenario-based learning environment** by providing **subtle hints** for the next steps.
 
         ### Context:
@@ -431,6 +436,7 @@ class LLM:
         """
         response = chat.completions.create(
             model="mixtral-8x7b-32768",
-            messages=[{"role": "user", "content": hint_prompt}]
+            messages=[{"role": "user", "content": chat_history + hint_prompt}]
         )
         return response.choices[0].message.content
+    

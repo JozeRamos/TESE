@@ -27,8 +27,8 @@ class Chatbot:
                 return message + "Bot -> Invalid option. Please choose 1 or 2."
             
         elif self.stage == "loop":
-            if user == "1":
-                message = "Your -> " + user_input + "\nBot -> " + self.llm.logic("What is the next stage?")
+            if user:
+                message = "Your -> " + user_input + "\nBot -> " + self.llm.logic(user_input)
                 return message
             else:
                 return "Bot -> Invalid command. Please enter 'hint', 'positive feedback', 'constructive feedback', or 'next stage'."
