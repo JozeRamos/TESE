@@ -24,7 +24,7 @@ class LLM:
         self.tones = data["tones"]
         self.chat_history = []
         # Read the API key from the file
-        with open('API.txt', 'r') as file:
+        with open('source/API.txt', 'r') as file:
             self.api_key = file.read().strip()
         # Set the API key as an environment variable
         os.environ["GROQ_API_KEY"] = self.api_key
@@ -140,24 +140,62 @@ class LLM:
         return [prompt_template, response.choices[0].message.content]
 
 
-    def logic(self, user_input):
-        temp_text = "Here are the previous messages in the conversation:\n"
-        for i in self.chat_history:
-            temp_text += i
-        self.chat_history.append("User message: (" + user_input + ")\n")
-        chat = self.client.chat
-        v = self.is_question(chat, self.user_role, self.scenario_name, user_input)        
-        Cot_answer = self.generate_cot_response(chat, self.user_role, self.ai_role, self.scenario_name, user_input, v, temp_text)
-        self_consistency1 = self.self_consistency(chat, self.user_role, self.scenario_name, user_input, Cot_answer, 3, temp_text)
-        feedback1 = self.feedback(chat, self.user_role, self.scenario_name, user_input, self_consistency1, temp_text)
-        refine1 = self.refine(chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1, temp_text)
-        feedback2 = self.feedback(chat, self.user_role, self.scenario_name, user_input, refine1, temp_text)
-        refine2 = self.refine(chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2, temp_text)
+    def logic(self, user_input, bar_change):
+        # Step 1: Prepare conversation history
+        temp_text = self.prepare_conversation_history(user_input)
+
+        bar_change(0, 10, "is_question...")
+
+        # Step 2: Determine if the input is a question
+        v = self.is_question(self.client.chat, self.user_role, self.scenario_name, user_input)
+
+        # Step 3: Generate the chain-of-thought (CoT) response
+        cot_answer = self.generate_cot_response(
+            self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, v, temp_text
+        )
+
+        # Step 4: Perform self-consistency checks
+        self_consistency1 = self.self_consistency(
+            self.client.chat, self.user_role, self.scenario_name, user_input, cot_answer, 3, temp_text
+        )
+
+        # Step 5: Generate feedback and refine the response (first iteration)
+        feedback1 = self.feedback(
+            self.client.chat, self.user_role, self.scenario_name, user_input, self_consistency1, temp_text
+        )
+        refine1 = self.refine(
+            self.client.chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1, temp_text
+        )
+
+        # Step 6: Generate feedback and refine the response (second iteration)
+        feedback2 = self.feedback(
+            self.client.chat, self.user_role, self.scenario_name, user_input, refine1, temp_text
+        )
+        refine2 = self.refine(
+            self.client.chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2, temp_text
+        )
+
+        # Step 7: Handle "next steps" if the input is not a valid question
         if "false" in v.lower():
-            next_steps = self.next_steps(chat, self.user_role, self.ai_role, self.scenario_name, user_input, refine2, 1, temp_text)
-            refine2 =  refine2 + "\nNext Steps: " + next_steps
-        self.chat_history.append("LLM message: (" + refine2 + ")\n")
+            next_steps = self.next_steps(
+                self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, refine2, 1, temp_text
+            )
+            refine2 += "\nNext Steps: " + next_steps
+
+        # Step 8: Update conversation history and return the final response
+        self.update_conversation_history(user_input, refine2)
         return refine2
+
+    # Helper Methods
+    def prepare_conversation_history(self, user_input):
+        temp_text = "Here are the previous messages in the conversation:\n"
+        for message in self.chat_history:
+            temp_text += message
+        self.chat_history.append("User message: (" + user_input + ")\n")
+        return temp_text
+
+    def update_conversation_history(self, llm_response):
+        self.chat_history.append("LLM message: (" + llm_response + ")\n")
     
 
     
