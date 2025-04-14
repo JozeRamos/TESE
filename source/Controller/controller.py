@@ -1,6 +1,7 @@
 import json
 import os
 import groq
+import threading
 
 class LLM:
     def __init__(self, json_file):
@@ -143,21 +144,27 @@ class LLM:
     def logic(self, user_input, bar_change):
         # Step 1: Prepare conversation history
         temp_text = self.prepare_conversation_history(user_input)
-
-        bar_change(0, 10, "is_question...")
+        
+        bar_change(0, 10, "Is it a question?")
 
         # Step 2: Determine if the input is a question
         v = self.is_question(self.client.chat, self.user_role, self.scenario_name, user_input)
+
+        bar_change(10, 20, "Generating CoT response...")
 
         # Step 3: Generate the chain-of-thought (CoT) response
         cot_answer = self.generate_cot_response(
             self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, v, temp_text
         )
 
+        bar_change(20, 30, "Performing self-consistency checks...")
+
         # Step 4: Perform self-consistency checks
         self_consistency1 = self.self_consistency(
             self.client.chat, self.user_role, self.scenario_name, user_input, cot_answer, 3, temp_text
         )
+
+        bar_change(30, 50, "Generating feedback and refining response...")
 
         # Step 5: Generate feedback and refine the response (first iteration)
         feedback1 = self.feedback(
@@ -167,6 +174,8 @@ class LLM:
             self.client.chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1, temp_text
         )
 
+        bar_change(50, 70, "Generating feedback and refining response...")
+
         # Step 6: Generate feedback and refine the response (second iteration)
         feedback2 = self.feedback(
             self.client.chat, self.user_role, self.scenario_name, user_input, refine1, temp_text
@@ -175,6 +184,8 @@ class LLM:
             self.client.chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2, temp_text
         )
 
+        bar_change(70, 90, "Finalizing response...")
+
         # Step 7: Handle "next steps" if the input is not a valid question
         if "false" in v.lower():
             next_steps = self.next_steps(
@@ -182,9 +193,11 @@ class LLM:
             )
             refine2 += "\nNext Steps: " + next_steps
 
+        bar_change(90, 100, "Response generated.")
+
         # Step 8: Update conversation history and return the final response
         self.update_conversation_history(user_input, refine2)
-        return refine2
+        return "refine2"
 
     # Helper Methods
     def prepare_conversation_history(self, user_input):
@@ -199,41 +212,18 @@ class LLM:
     
 
     
-    def is_question(self, chat, user_role, scenario_name, user_input):
-        user_input_prompt = f"""
-        You are processing user input in an interactive scenario-based learning environment.
+    def is_question(self, chat, user_input):
+        input_str = user_input.strip().lower()
+        question_words = ['what', 'when', 'where', 'who', 'why', 'how', 'can', 'could', 'should', 'would', 'is', 'are', 'do', 'does', 'did', 'will']
 
-        ### Context:
-        The user, acting as {user_role}, is navigating through the scenario "{scenario_name}". They may provide input that could either be a **question** or an **action**.
-
-        ### Instructions:
-        - Your task is to analyze the user's input "{user_input}" and determine whether it is a **question** or not.
-        - If the input is a **question**, respond with **True**.
-        - If the input is not a **question** (i.e., it is an **action**), respond with **False**.
-
-        ### Definition of a Question:
-        - A question typically ends with a question mark (`?`) and asks for information, clarification, or guidance.
-
-        ### Example Interactions:
-
-        1. **User Input (Question)**  
-        - **User:** "What should I do first?"  
-        - **AI:** True  
-
-        2. **User Input (Action)**  
-        - **User:** "Check for breathing."  
-        - **AI:** False  
-
-        3. **User Input (Action)**  
-        - **User:** "Start CPR."  
-        - **AI:** False  
-
-        4. **User Input (Question)**  
-        - **User:** "Can I use a defibrillator now?"  
-        - **AI:** True  
-
-        ### Output:
-        - Return either **True** or **False** based on whether the user's input is a question or not.
+        if input_str.endswith('?'):
+            return True
+        if any(input_str.startswith(word) for word in question_words):
+            return True
+        
+        user_input_prompt = f"""Is the following input a question?
+        Input: "{user_input}"
+        Respond with True if it's a question, otherwise respond with False.
         """
 
 
@@ -473,7 +463,7 @@ class LLM:
         - Do not reveal the direct answer; instead, encourage **critical thinking**.
         """
         response = chat.completions.create(
-            model="mixtral-8x7b-32768",
+            model="deepseek-r1-distill-llama-70b",
             messages=[{"role": "user", "content": chat_history + hint_prompt}]
         )
         return response.choices[0].message.content

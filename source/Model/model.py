@@ -1,6 +1,5 @@
 from View.view import ChatbotGUI
 from Controller.controller import LLM
-import threading
 
 _chatbot_instance = None
 
@@ -25,20 +24,13 @@ class Chatbot:
         
         elif self.stage == "Options":
             if user == "1":
-                # self.stage = "loop"
+                self.stage = "loop"
                 self.view.progress_bar_create()
-                # Create threads for each function
-                thread1 = threading.Thread(target=self.view.progress_bar_percentage(1, 95, "Loading loop scenario..."))
-                thread2 = threading.Thread(target=self.set_llm('source\Scenarios\loop.json'))
 
-                # Start both threads
-                thread1.start()
-                thread2.start()
+                self.view.progress_bar_percentage(1, 95, "Loading loop scenario...")
 
-                # Optionally, wait for both threads to complete
-                thread1.join()
-                thread2.join()
-                
+                self.set_llm('source\\Scenarios\\loop.json')
+
                 self.view.progress_bar_percentage(95, 101, "Finishing up...")
                 self.view.progress_bar_delete()
                 
