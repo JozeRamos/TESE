@@ -145,7 +145,7 @@ class LLM:
         # Step 1: Prepare conversation history
         temp_text = self.prepare_conversation_history(user_input)
         
-        bar_change(0, 10, "Is it a question?")
+        bar_change(0, 5, "Is it a question?")
 
         # Step 2: Determine if the input is a question
         v = self.is_question(self.client.chat, self.user_role, self.scenario_name, user_input)
@@ -164,7 +164,7 @@ class LLM:
             self.client.chat, self.user_role, self.scenario_name, user_input, cot_answer, 3, temp_text
         )
 
-        bar_change(30, 50, "Generating feedback and refining response...")
+        bar_change(40, 50, "Generating feedback and refining response...")
 
         # Step 5: Generate feedback and refine the response (first iteration)
         feedback1 = self.feedback(
@@ -174,7 +174,7 @@ class LLM:
             self.client.chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1, temp_text
         )
 
-        bar_change(50, 70, "Generating feedback and refining response...")
+        bar_change(60, 70, "Generating feedback and refining response...")
 
         # Step 6: Generate feedback and refine the response (second iteration)
         feedback2 = self.feedback(
@@ -184,7 +184,7 @@ class LLM:
             self.client.chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2, temp_text
         )
 
-        bar_change(70, 90, "Finalizing response...")
+        bar_change(85, 90, "Finalizing response...")
 
         # Step 7: Handle "next steps" if the input is not a valid question
         if "false" in v.lower():
@@ -193,7 +193,7 @@ class LLM:
             )
             refine2 += "\nNext Steps: " + next_steps
 
-        bar_change(90, 100, "Response generated.")
+        bar_change(95, 100, "Response generated.")
 
         # Step 8: Update conversation history and return the final response
         self.update_conversation_history(user_input, refine2)
@@ -214,7 +214,7 @@ class LLM:
     
     def is_question(self, chat, user_input):
         input_str = user_input.strip().lower()
-        question_words = ['what', 'when', 'where', 'who', 'why', 'how', 'can', 'could', 'should', 'would', 'is', 'are', 'do', 'does', 'did', 'will']
+        question_words = ['what', 'when', 'where', 'who', 'why', 'how', 'can', 'could', 'should', 'would', 'is', 'are', 'does', 'did', 'will']
 
         if input_str.endswith('?'):
             return True
