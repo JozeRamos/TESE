@@ -60,7 +60,7 @@ class ChatbotGUI:
     def progress_bar_percentage(self, percent_before, percent_after, message):
         """Simulate progress bar percentage completion."""
         for percent_complete in range(percent_before, percent_after):
-            time.sleep(0.05)  # Simulate progress
+            time.sleep(0.01)  # Simulate progress
             self.progress_bar.progress(percent_complete)
             self.status_message.text(message)
 

@@ -135,7 +135,7 @@ class LLM:
         - Maintain a **role-playing dynamic** to keep the user immersed in the experience.  
         """
         response = self.client.chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt_template}]
         )
         return [prompt_template, response.choices[0].message.content]
@@ -148,7 +148,7 @@ class LLM:
         bar_change(0, 5, "Is it a question?")
 
         # Step 2: Determine if the input is a question
-        v = self.is_question(self.client.chat, self.user_role, self.scenario_name, user_input)
+        v = self.is_question(self.client.chat, user_input)
 
         bar_change(10, 20, "Generating CoT response...")
 
@@ -187,17 +187,17 @@ class LLM:
         bar_change(85, 90, "Finalizing response...")
 
         # Step 7: Handle "next steps" if the input is not a valid question
-        if "false" in v.lower():
+        if v:
             next_steps = self.next_steps(
                 self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, refine2, 1, temp_text
             )
-            refine2 += "\nNext Steps: " + next_steps
+            refine2 = refine2 + "\n\nNext Steps: " + next_steps
 
         bar_change(95, 100, "Response generated.")
 
         # Step 8: Update conversation history and return the final response
-        self.update_conversation_history(user_input, refine2)
-        return "refine2"
+        self.update_conversation_history(refine2)
+        return refine2
 
     # Helper Methods
     def prepare_conversation_history(self, user_input):
@@ -228,7 +228,7 @@ class LLM:
 
 
         response = chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": user_input_prompt}]
         )
         return response.choices[0].message.content
@@ -236,66 +236,29 @@ class LLM:
     
     def generate_cot_response(self, chat, user_role, ai_role, scenario_name, user_input, is_question, chat_history):
         cot_agent_prompt = f"""\nCurrent Prompt:
-        You are an AI agent using **Chain-of-Thought (CoT) reasoning** to analyze and respond to the user's input in an interactive **scenario-based learning environment**.
+        You are an AI using Chain-of-Thought (CoT) to guide a user in a scenario-based learning task.
 
-        ### Context:
-        - The user, acting as **{user_role}**, is navigating the scenario **"{scenario_name}"**.
-        - Their previous input was: **"{user_input}"**.
-        - You have already determined that this input is a **{"Question" if is_question else "Action"}**.
+        Context:
+        User role: {user_role} | Scenario: "{scenario_name}"
+        Input: "{user_input}" → Classified as {"Question" if is_question else "Action"}
 
-        ### Instructions:
-        - **Step 1: Think Step-by-Step (CoT)**
-        - **If the input is a question**, analyze the intent and provide **subtle guidance** without giving the direct answer.
-        - **If the input is an action**, determine if it is **valid**, **invalid**, or **requires clarification**.
-        - Reason through possible consequences of the user's input before responding.
+        Instructions:
+        Step 1 (CoT):
+        If Question: Infer intent, hint subtly, avoid direct answers.
+        If Action: Judge as valid/invalid/unclear; consider effects.
 
-        - **Step 2: Act as an Agent Worker**
-        - Simulate an expert in the field related to the scenario (e.g., a doctor for a medical scenario).
-        - Stay in-character as **{ai_role}** to enhance immersion.
-        - Provide **adaptive feedback** to help the user learn from their decisions.
+        Step 2 (Response):
+        Stay in-role as {ai_role}; give immersive, adaptive feedback.
 
-        ### Response Logic:
-        1. **For Questions:**
-        - Think through what information the user is missing.
-        - Provide a **hint or guidance** rather than directly stating the answer.
-        - Encourage the user to think critically.
-
-        2. **For Actions:**
-        - If the action is **correct**, acknowledge it and describe its impact on the scenario.
-        - If the action is **incorrect**, give **subtle feedback** without revealing the answer.
-        - If the action is **unclear**, prompt the user to clarify their intent.
-
-        ### Example Interactions:
-
-        #### 1️⃣ User Asks a Question:
-        - **User:** "Should I check for breathing first?"  
-        - **AI (CoT Reasoning):** "The user is asking about the correct sequence of actions in an emergency. Instead of directly answering, I should guide them toward thinking about initial assessments."  
-        - **AI (Agent Worker Response):** "Assessing the patients condition is crucial. What key signs would indicate their breathing status?"  
-
-        #### 2️⃣ User Takes a Correct Action:
-        - **User:** "Check for breathing."  
-        - **AI (CoT Reasoning):** "Checking for breathing is a fundamental first aid step. This action is correct and should progress the scenario."  
-        - **AI (Agent Worker Response):** "Good! The patient is breathing but unconscious. Whats your next step?"  
-
-        #### 3️⃣ User Takes an Incorrect Action:
-        - **User:** "Start CPR."  
-        - **AI (CoT Reasoning):** "CPR is only necessary if the patient is not breathing. I should redirect the user without revealing the answer outright."  
-        - **AI (Agent Worker Response):** "CPR is an important skill, but consider checking the patients condition first. What signs would indicate that CPR is needed?"  
-
-        #### 4️⃣ User Input is Unclear:
-        - **User:** "Help the patient."  
-        - **AI (CoT Reasoning):** "This input is too vague to process. I need to prompt the user to clarify what they mean."  
-        - **AI (Agent Worker Response):** "How would you like to assist the patient? Checking their condition or calling for help could be a good start."  
-
-        ### Output:
-        - Respond with **immersive, role-play appropriate** guidance.
-        - Maintain the **CoT reasoning process** before responding.
-        - Always **prioritize learning and scenario immersion**.
+        Output:
+        Use CoT before replying.
+        Guide learning through role-play.
+        Be concise, immersive, and educational.
         """
 
 
         response = chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": chat_history + cot_agent_prompt}]
         )
 
@@ -304,62 +267,33 @@ class LLM:
     
     def self_consistency(self, chat, user_role, scenario_name, user_input, previous_ai_response, num_variations, chat_history):
         self_consistency_prompt = f"""\nCurrent Prompt:
-        You are ensuring **self-consistency** in your response within an interactive **scenario-based learning environment**.
+        You are ensuring self-consistency in a scenario-based learning setting.
 
-        ### Context:
-        - The user, acting as **{user_role}**, is navigating the scenario **"{scenario_name}"**.
-        - Their input was: **"{user_input}"**.
-        - Your initial response was: **"{previous_ai_response}"**.
+        Context:
+        User role: {user_role} | Scenario: "{scenario_name}"
+        Input: "{user_input}" | Prior response: "{previous_ai_response}"
 
-        ### Instructions:
-        1. **Generate Multiple Independent Reasoning Paths**  
-        - Produce **{num_variations}** different responses to the user's input.  
-        - Each response should be **independently reasoned**, taking into account:
-            - Scenario progression
-            - Role-playing immersion
-            - Pedagogical effectiveness  
+        Instructions:
+        Generate {num_variations} distinct responses, each with independent reasoning, maintaining:
+        Scenario flow
+        Role immersion
+        Pedagogical value
 
-        2. **Evaluate Consistency Across Responses**  
-        - Compare the generated responses and identify the **common patterns**.
-        - Determine which response aligns best with **logical progression, accuracy, and engagement**.
-        
-        3. **Select the Most Reliable Response**  
-        - The final response should reflect the **most consistent** reasoning across variations.
-        - If discrepancies arise, choose the response that:
-            - Provides the **best subtle hint** (for questions)
-            - Gives the **most accurate but engaging feedback** (for actions)
-            - Maintains **scenario immersion and role-play quality**.
+        Compare responses:
+        Find consistent patterns
+        Pick the one with best logic, feedback quality, and engagement
 
-        ### Example Process:
+        Select final reply:
+        For questions → subtle hint
+        For actions → accurate, immersive feedback
 
-        #### ✅ User Takes an Action:
-        - **User:** "Check the patient's pulse."  
-        - **AI Generates Three Variations:**
-        1. "Checking the pulse is crucial for assessing the patients condition. Do you feel a strong, regular pulse?"
-        2. "A pulse check gives key information. If its weak or absent, what might you consider next?"
-        3. "Monitoring circulation is important. What do you observe after checking their pulse?"  
+        Always preserve role and scenario logic
 
-        - **AI Evaluates:**  
-        - All responses align with **correct scenario logic**.  
-        - Response 2 is chosen because it **guides the user without giving away the answer**.  
-
-        #### 🔄 User Asks a Question:
-        - **User:** "Should I move the patient?"  
-        - **AI Generates Three Variations:**
-        1. "Before moving them, what risks should you consider?"
-        2. "Think about the patients injuries. What factors determine whether moving is safe?"
-        3. "Moving a patient can be risky. What assessment should you do first?"  
-
-        - **AI Evaluates:**  
-        - All responses hint at **checking for injuries first**.  
-        - Response 2 is chosen as it **maintains engagement and encourages critical thinking**.  
-
-        ### Output:
-        - **A final, self-consistent response**, based on analyzing multiple reasoning paths.
-        - The response should be **logical, immersive, and pedagogically effective**.
+        Output:
+        A single, refined response grounded in CoT consistency and learning impact with less than 100 words.
         """
         response = chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": chat_history + self_consistency_prompt}]
         )
         return response.choices[0].message.content
@@ -388,9 +322,10 @@ class LLM:
         - **Strengths**: What aspects of the response were effective?
         - **Weaknesses**: What areas could be improved?
         - **Actionable Suggestions**: How can the response be refined?
+        - **Size**: Keep the feedback concise, ideally under 100 words.
         """
         response = chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": chat_history + feedback_prompt}]
         )
         return response.choices[0].message.content
@@ -414,10 +349,10 @@ class LLM:
         5. **Increases Clarity**: Ensure the response is **concise, easy to understand, and pedagogically sound**.
 
         ### Output:
-        Provide an improved version of your original response, ensuring it meets the refinement criteria while preserving scenario immersion.
+        Provide an improved version of your original response, ensuring it meets the refinement criteria while preserving scenario immersion and with less than 100 words.
         """
         response = chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": chat_history + refinement_prompt}]
         )
         return response.choices[0].message.content
@@ -425,45 +360,28 @@ class LLM:
     
     def next_steps(self, chat, user_role, ai_role, scenario_name, user_action, previous_ai_response, current_stage, chat_history):
         hint_prompt = f"""\nCurrent Prompt:
-        You are guiding the user through an interactive **scenario-based learning environment** by providing **subtle hints** for the next steps.
+        You are guiding a user through a scenario-based learning task by giving subtle, role-appropriate hints.
 
-        ### Context:
-        - The user, acting as **{user_role}**, is progressing through the scenario **"{scenario_name}"**.
-        - Their last action was: **"{user_action}"**.
-        - Your previous response to their action was: **"{previous_ai_response}"**.
-        - The scenario is currently at **Stage {current_stage}**.
+        Context:
+        Role: {user_role} | Scenario: "{scenario_name}" | Stage: {current_stage}
+        Last action: "{user_action}"
+        Your last response: "{previous_ai_response}"
 
-        ### Instructions:
-        - **Analyze the user's last action** and determine what should logically happen next.
-        - Provide a **subtle hint** that encourages the user to think critically about their next step **without directly stating the answer**.
-        - Keep the hint **immersive and role-appropriate**, aligned with **{ai_role}**.
+        Instructions:
+        Assess the users action.
+        Give a subtle hint that encourages critical thinking—never reveal the answer.
+        Stay in-character as {ai_role} and aligned with the scenario.
 
-        ### Hint Strategy:
-        1. **If the action was correct** → Guide the user toward the **next logical step** in the scenario.
-        2. **If the action was incorrect** → Give a hint to **redirect** them without explicitly telling them they were wrong.
-        3. **If the action was unclear** → Prompt them for **clarification** while subtly hinting at what they should consider.
+        Hint Strategy:
+        Correct → Nudge toward the next logical step.
+        Incorrect → Gently redirect.
+        Unclear → Prompt for clarification with a guiding cue.
 
-        ### Example Interactions:
-
-        #### ✅ User Takes a Correct Action:
-        - **User:** "Check for breathing."  
-        - **AI (Hint):** "Good. Observing the patient's breathing is crucial. What signs might indicate they need immediate intervention?"  
-
-        #### ❌ User Takes an Incorrect Action:
-        - **User:** "Start CPR."  
-        - **AI (Hint):** "CPR is a life-saving measure, but timing is important. What should you check first before deciding to start?"  
-
-        #### 🔄 User Action is Unclear:
-        - **User:** "Help the patient."  
-        - **AI (Hint):** "There are many ways to assist. Are you focusing on assessing their condition, providing immediate aid, or calling for help?"  
-
-        ### Output:
-        - **A single, subtle hint** guiding the user toward the next step.
-        - Maintain immersion and role-play dynamics.
-        - Do not reveal the direct answer; instead, encourage **critical thinking**.
+        Output:
+        One immersive, hint-based response—subtle, clear, and pedagogically effective with less than 100 words.
         """
         response = chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": chat_history + hint_prompt}]
         )
         return response.choices[0].message.content

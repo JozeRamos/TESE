@@ -2,6 +2,7 @@ from View.view import ChatbotGUI
 from Controller.controller import LLM
 
 _chatbot_instance = None
+_gui_instance = None
 
 class Chatbot:
     def __init__(self):
@@ -42,24 +43,37 @@ class Chatbot:
             
         elif self.stage == "loop":
             if user:
+                self.stage = "loop"
                 self.view.progress_bar_create()
                 message = self.llm.logic(user_input, self.view.progress_bar_percentage)
                 self.view.progress_bar_delete()
                 return message
             else:
-                return "Bot -> Invalid command. Please enter 'hint', 'positive feedback', 'constructive feedback', or 'next stage'."
+                return "Invalid command."
             
 
 def main():
-    global _chatbot_instance
-    # Modify the code to create the Chatbot instance only once
+    global _chatbot_instance, _gui_instance
+
+    # Ensure the Chatbot instance is created only once
     if _chatbot_instance is None:
+        print("Creating Chatbot instance...")
         _chatbot_instance = Chatbot()
 
     chatbot = _chatbot_instance
-    gui = ChatbotGUI(chatbot)
+
+    # Ensure the ChatbotGUI instance is created only once
+    if _gui_instance is None:
+        print("Creating ChatbotGUI instance...")
+        _gui_instance = ChatbotGUI(chatbot)
+
+    gui = _gui_instance
+
+    # Set the view for the Chatbot only if it hasn't been set
     if chatbot.view is None:
         chatbot.set_view(gui)
+
+    # Run the GUI
     gui.run()
 
 if __name__ == "__main__":
