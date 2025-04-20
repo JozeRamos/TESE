@@ -1,5 +1,9 @@
 import streamlit as st
 import time
+import os
+import sys
+os.environ["STREAMLIT_WATCH_FILE_CHANGES"] = "false"
+sys.modules['torch.classes'] = None
 
 class ChatbotGUI:
     def __init__(self, logic):
