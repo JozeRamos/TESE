@@ -9,7 +9,8 @@ from semantic_router.encoders import HuggingFaceEncoder
 from tqdm import tqdm
 from groq import Client
 from sentence_transformers import SentenceTransformer
-import torch
+import joblib
+from concurrent.futures import ThreadPoolExecutor
 
 
 class LLM:
@@ -18,7 +19,7 @@ class LLM:
         with open(json_file, 'r') as file:
             data = json.load(file)
         self._load_config(data)
-        
+        PYTORCH_CUDA_ALLOC_CONF=True
         # Load API keys and clients
         self._load_api_keys()
         self.client = Client(api_key=os.getenv("GROQ_API_KEY"))
@@ -74,15 +75,20 @@ class LLM:
         embeds_path = "embeds.pkl"
 
         # Step 1: Load and process dataset
+
+        def load_file(file_path):
+            with open(file_path, "rb") as f:
+                return joblib.load(f)
+
         if os.path.exists(processed_data_path) and os.path.exists(embeds_path):
             print("Loading processed data and embeddings from cache...")
-            with open(processed_data_path, "rb") as f:
-                processed_data = pickle.load(f)
-            with open(embeds_path, "rb") as f:
-                embeds = pickle.load(f)
+
+            # Load files in parallel
+            with ThreadPoolExecutor() as executor:
+                processed_data, embeds = executor.map(load_file, [processed_data_path, embeds_path])
         else:
             print("Processing dataset and computing embeddings...")
-            data = load_dataset("open-phi/programming_books_llama", split="train[:100000]")
+            data = load_dataset("open-phi/programming_books_llama", split="train[:12000]")
 
             # Handle null values and ensure consistent types in metadata
             def process_metadata(x, idx):
@@ -109,8 +115,14 @@ class LLM:
                 "topic", "context", "concepts", "queries", "outline", "model", "markdown"
             ])
 
-            chunks = [f'{x["topic"]}:\n{x["queries"]}\n{x["context"]}' for x in data]
-            embeds = self.encoder(chunks)
+            def truncate_chunk(text, max_length=1000):
+                return text[:max_length] if len(text) > max_length else text
+
+            chunks = [truncate_chunk(f'{x["topic"]}:\n{x["queries"]}\n{x["context"]}') for x in data]
+            embeds = []
+            for i in range(0, len(chunks), 32):  # or smaller
+                batch = chunks[i:i+32]
+                embeds.extend(model.encode(batch))
 
             # Save processed data and embeddings to cache
             with open(processed_data_path, "wb") as f:
@@ -120,18 +132,27 @@ class LLM:
             print("Processed data and embeddings saved to cache.")
 
         # Step 2: Create index if needed
-        if self.index_name not in [idx["name"] for idx in self.pc.list_indexes()]:
-            spec = ServerlessSpec(cloud="aws", region="us-east-1")
-            self.pc.create_index(
-                self.index_name,
-                dimension=embedding_dimension,
-                metric='cosine',
-                spec=spec
-            )
-            # Wait for index to be ready
-            while not self.pc.describe_index(self.index_name).status['ready']:
+        if self.index_name in [idx["name"] for idx in self.pc.list_indexes()]:
+            print(f"Index '{self.index_name}' already exists. Deleting it to reset the dimension...")
+            self.pc.delete_index(self.index_name)
+            # Wait for the index to be fully deleted
+            while self.index_name in [idx["name"] for idx in self.pc.list_indexes()]:
                 time.sleep(1)
-        self.index = self.pc.Index(self.index_name)
+
+        # Create the index with the correct dimension
+        print(f"Creating index '{self.index_name}' with dimension {embedding_dimension}...")
+        spec = ServerlessSpec(cloud="aws", region="us-east-1")
+        self.pc.create_index(
+            self.index_name,
+            dimension=embedding_dimension,
+            metric='cosine',
+            spec=spec
+        )
+
+        # Wait for the index to be ready
+        while not self.pc.describe_index(self.index_name).status['ready']:
+            time.sleep(1)
+            self.index = self.pc.Index(self.index_name)
 
         # Step 3: Upsert data
         batch_size = 256
@@ -205,7 +226,7 @@ class LLM:
         # search pinecone index
         res = self.index.query(vector=xq, top_k=top_k, include_metadata=True)
         # get doc text
-        docs = [x["metadata"]['content'] for x in res["matches"]]
+        docs = [x["metadata"]['context'] for x in res["matches"]]
         return docs
     
     def Inital_prompt(self, ai_role, user_role, scenario_name, ai_persona, place, task, format, exemplar, stage_description, hint, positive_feedback, constructive_feedback, next_stage_condition, stages, tone_1, tone_2):
