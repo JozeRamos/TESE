@@ -34,11 +34,21 @@ class LLM:
         # Chat history
         self.chat_history = []
 
+        self.llm_name = "llama3-70b-8192"
+
         # Just connect to the index if it exists
         self.index_name = "groq-llama-3-rag"
         self.index = None
         if self.index_name in [idx["name"] for idx in self.pc.list_indexes()]:
             self.index = self.pc.Index(self.index_name)
+
+        # initial = self.Inital_prompt(self.ai_role, self.user_role, self.scenario_name, self.ai_persona, self.place,
+        #             self.task, self.format, self.exemplar, self.stage_description, self.hint,
+        #                 self.positive_feedback, self.constructive_feedback,
+        #                 self.next_stage_condition, self.stages,
+        #                         self.tones[0], self.tones[1])
+
+        # self.chat_history.append("Scenario description: " + initial + "\n")
 
     def _load_config(self, data):
         self.ai_role = data["ai_role"]
@@ -88,7 +98,7 @@ class LLM:
                 processed_data, embeds = executor.map(load_file, [processed_data_path, embeds_path])
         else:
             print("Processing dataset and computing embeddings...")
-            data = load_dataset("open-phi/programming_books_llama", split="train[:12000]")
+            data = load_dataset("open-phi/programming_books_llama", split="train[:10000]")
 
             # Handle null values and ensure consistent types in metadata
             def process_metadata(x, idx):
@@ -162,17 +172,6 @@ class LLM:
             chunk_batch = embeds[i:i_end]
             to_upsert = list(zip(batch["id"], chunk_batch, batch["metadata"]))
             self.index.upsert(vectors=to_upsert)
-
-        
-        # initial = self.Inital_prompt(self.ai_role, self.user_role, self.scenario_name, self.ai_persona, self.place,
-        #             self.task, self.format, self.exemplar, self.stage_description, self.hint,
-        #                 self.positive_feedback, self.constructive_feedback,
-        #                 self.next_stage_condition, self.stages,
-        #                         self.tones[0], self.tones[1])
-        
-
-        # self.chat_history.append("Initial prompt: " + initial[0] + "\n")
-        # self.chat_history.append("LLM response: " + initial[1] + "\n")
 
 
     def get_ai_role(self):
@@ -275,71 +274,67 @@ class LLM:
         - Write in a **{tone_2}** for clarity and engagement.  
         - Maintain a **role-playing dynamic** to keep the user immersed in the experience.  
         """
-        response = self.client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[{"role": "user", "content": prompt_template}]
-        )
-        return [prompt_template, response.choices[0].message.content]
+        
+        return [prompt_template]
 
 
     def logic(self, user_input, bar_change):
-        # # Step 1: Prepare conversation history
-        # temp_text = self.prepare_conversation_history(user_input)
+        # Step 1: Prepare conversation history
+        temp_text = self.prepare_conversation_history(user_input)
         
-        # bar_change(0, 5, "Is it a question?")
+        bar_change(0, 5, "Is it a question?")
 
-        # # Step 2: Determine if the input is a question
-        # v = self.is_question(self.client.chat, user_input)
+        # Step 2: Determine if the input is a question
+        v = self.is_question(self.client.chat, user_input)
 
-        # bar_change(10, 20, "Generating CoT response...")
+        bar_change(10, 20, "Generating CoT response...")
 
-        # # Step 3: Generate the chain-of-thought (CoT) response
-        # cot_answer = self.generate_cot_response(
-        #     self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, v, temp_text
-        # )
+        # Step 3: Generate the chain-of-thought (CoT) response
+        cot_answer = self.generate_cot_response(
+            self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, v, temp_text
+        )
 
-        # bar_change(20, 30, "Performing self-consistency checks...")
+        bar_change(20, 30, "Performing self-consistency checks...")
 
-        # # Step 4: Perform self-consistency checks
-        # self_consistency1 = self.self_consistency(
-        #     self.client.chat, self.user_role, self.scenario_name, user_input, cot_answer, 3, temp_text
-        # )
+        # Step 4: Perform self-consistency checks
+        self_consistency1 = self.self_consistency(
+            self.client.chat, self.user_role, self.scenario_name, user_input, cot_answer, 3, temp_text
+        )
 
-        # bar_change(40, 50, "Generating feedback and refining response...")
+        bar_change(40, 50, "Generating feedback and refining response...")
 
-        # # Step 5: Generate feedback and refine the response (first iteration)
-        # feedback1 = self.feedback(
-        #     self.client.chat, self.user_role, self.scenario_name, user_input, self_consistency1, temp_text
-        # )
-        # refine1 = self.refine(
-        #     self.client.chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1, temp_text
-        # )
+        # Step 5: Generate feedback and refine the response (first iteration)
+        feedback1 = self.feedback(
+            self.client.chat, self.user_role, self.scenario_name, user_input, self_consistency1, temp_text
+        )
+        refine1 = self.refine(
+            self.client.chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1, temp_text
+        )
 
-        # bar_change(60, 70, "Generating feedback and refining response...")
+        bar_change(60, 70, "Generating feedback and refining response...")
 
-        # # Step 6: Generate feedback and refine the response (second iteration)
-        # feedback2 = self.feedback(
-        #     self.client.chat, self.user_role, self.scenario_name, user_input, refine1, temp_text
-        # )
-        # refine2 = self.refine(
-        #     self.client.chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2, temp_text
-        # )
+        # Step 6: Generate feedback and refine the response (second iteration)
+        feedback2 = self.feedback(
+            self.client.chat, self.user_role, self.scenario_name, user_input, refine1, temp_text
+        )
+        refine2 = self.refine(
+            self.client.chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2, temp_text
+        )
 
-        # bar_change(85, 90, "Finalizing response...")
+        bar_change(85, 90, "Finalizing response...")
 
-        # # Step 7: Handle "next steps" if the input is not a valid question
-        # if v:
-        #     next_steps = self.next_steps(
-        #         self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, refine2, 1, temp_text
-        #     )
-        #     refine2 = refine2 + "\n\nNext Steps: " + next_steps
+        # Step 7: Handle "next steps" if the input is not a valid question
+        if v:
+            next_steps = self.next_steps(
+                self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, refine2, 1, temp_text
+            )
+            refine2 = refine2 + "\n\nNext Steps: " + next_steps
 
-        # bar_change(95, 100, "Response generated.")
+        bar_change(95, 100, "Response generated.")
 
-        # # Step 8: Update conversation history and return the final response
-        # self.update_conversation_history(refine2)
-        # return refine2
-        return self.get_docs(user_input, top_k=5)
+        # Step 8: Update conversation history and return the final response
+        self.update_conversation_history(refine2)
+        return refine2
 
     # Helper Methods
     def prepare_conversation_history(self, user_input):
@@ -370,7 +365,7 @@ class LLM:
 
 
         response = chat.completions.create(
-            model="llama3-70b-8192",
+            model=self.llm_name,
             messages=[{"role": "user", "content": user_input_prompt}]
         )
         return response.choices[0].message.content
@@ -400,7 +395,7 @@ class LLM:
 
 
         response = chat.completions.create(
-            model="llama3-70b-8192",
+            model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + cot_agent_prompt}]
         )
 
@@ -435,7 +430,7 @@ class LLM:
         A single, refined response grounded in CoT consistency and learning impact with less than 100 words.
         """
         response = chat.completions.create(
-            model="llama3-70b-8192",
+            model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + self_consistency_prompt}]
         )
         return response.choices[0].message.content
@@ -467,7 +462,7 @@ class LLM:
         - **Size**: Keep the feedback concise, ideally under 100 words.
         """
         response = chat.completions.create(
-            model="llama3-70b-8192",
+            model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + feedback_prompt}]
         )
         return response.choices[0].message.content
@@ -494,7 +489,7 @@ class LLM:
         Provide an improved version of your original response, ensuring it meets the refinement criteria while preserving scenario immersion and with less than 100 words.
         """
         response = chat.completions.create(
-            model="llama3-70b-8192",
+            model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + refinement_prompt}]
         )
         return response.choices[0].message.content
@@ -523,7 +518,7 @@ class LLM:
         One immersive, hint-based response—subtle, clear, and pedagogically effective with less than 100 words.
         """
         response = chat.completions.create(
-            model="llama3-70b-8192",
+            model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + hint_prompt}]
         )
         return response.choices[0].message.content
