@@ -32,15 +32,6 @@
         {"stage_step":
             [
                 {
-                    "description": "You have identified that the function lacks a correct base case. Now, you need to define an appropriate stopping condition.",
-                    "hint": "Consider the smallest input that doesnt require further breakdown.",
-                    "correct_response": "Ensure the function returns `1` when `n` is `0`."
-                }
-            ]
-        },
-        {"stage_step":
-            [
-                {
                     "description": "The base case is now correct, but the function still isn't returning the expected factorial values. It's time to verify the recursive step.",
                     "hint": "Each step should bring you closer to the stopping condition while preserving the logic of the operation.",
                     "correct_response": "Ensure the function correctly multiplies `n * factorial(n-1)`."
