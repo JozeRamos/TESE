@@ -1,6 +1,5 @@
 from View.view import ChatbotGUI
 from Controller.controller import LLM
-import time
 
 _chatbot_instance = None
 _gui_instance = None
@@ -16,43 +15,47 @@ class Chatbot:
 
     def set_llm(self, llm):
         self.llm = LLM(llm)
-        # time1 = time.time()
-        # LLM.build_index(self.llm)
-        # timeDif = time.time() - time1
-        # print("Time taken to build index: ", timeDif)
+        self.view.progress_bar_percentage(40, 60, "Loading RAG...")
+        LLM.build_index(self.llm)
 
     def get_response(self, user_input):
         user = user_input.lower()
 
         if self.stage == "Initial":
             self.stage = "Options"
-            return "Choose a scenario:\n1. Loop Scenario\n2. Create scenario\n"
+            return "Choose a scenario:\n1. Loop Scenario"
         
         elif self.stage == "Options":
             if user == "1":
                 self.stage = "loop"
-                # self.view.progress_bar_create()
+                self.view.progress_bar_create()
 
-                # self.view.progress_bar_percentage(1, 95, "Loading loop scenario...")
+                self.view.progress_bar_percentage(1, 30, "Loading loop scenario...")
 
                 self.set_llm('source\\Scenarios\\loop.json')
 
-                # self.view.progress_bar_percentage(95, 101, "Finishing up...")
-                # self.view.progress_bar_delete()
+                self.view.progress_bar_percentage(95, 101, "Finishing up...")
+                self.view.progress_bar_delete()
                 
                 return "Loop scenario selected. Here is the scenario description:\n" + self.llm.get_stage_description()
-            elif user == "2":
-                return "Scenario creation selected."
             else:
-                return "Invalid option. Please choose from the options provided.\n1. Loop Scenario\n2. Create scenario\n"
+                return "Invalid option. Please choose from the options provided.\n1. Loop Scenario"
             
         elif self.stage == "loop":
+            if user == "quit":
+                self.stage = "Options"
+                return "Loop scenario aborted.\n\nChoose a new scenario:\n1. Loop Scenario"
             if user:
                 self.stage = "loop"
                 self.view.progress_bar_create()
                 message = self.llm.logic(user_input, self.view.progress_bar_percentage)
                 self.view.progress_bar_delete()
-                return message
+                if message == "End":
+                    self.stage = "Options"
+                    self.llm = None
+                    return "Congratulations you completed the Loop scenario.\n\nChoose a new scenario:\n1. Loop Scenario"
+                else:
+                    return message
             else:
                 return "Invalid command."
             

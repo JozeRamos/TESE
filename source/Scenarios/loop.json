@@ -21,11 +21,6 @@
                     "description": "The function takes an integer `n` but runs indefinitely when `n=5`, consuming system resources and eventually causing a stack overflow.",
                     "hint": "Ask yourself: under what condition should the function stop calling itself?",
                     "correct_response": "Check if the base case is missing or incorrectly defined."
-                },
-                {
-                    "description": "FDAS",
-                    "hint": "SAD",
-                    "correct_response": "Check the patient pulse."
                 }
             ]
         },

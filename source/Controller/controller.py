@@ -142,23 +142,37 @@ class LLM:
                 pickle.dump(embeds, f)
             print("Processed data and embeddings saved to cache.")
 
-        # Step 2: Create index if needed
-        if self.index_name in [idx["name"] for idx in self.pc.list_indexes()]:
-            print(f"Index '{self.index_name}' already exists. Deleting it to reset the dimension...")
-            self.pc.delete_index(self.index_name)
-            # Wait for the index to be fully deleted
-            while self.index_name in [idx["name"] for idx in self.pc.list_indexes()]:
-                time.sleep(1)
+        # Step 2: Check if the index exists and matches the required configuration
+        existing_indexes = self.pc.list_indexes()
+        index_exists = any(idx["name"] == self.index_name for idx in existing_indexes)
 
-        # Create the index with the correct dimension
-        print(f"Creating index '{self.index_name}' with dimension {embedding_dimension}...")
-        spec = ServerlessSpec(cloud="aws", region="us-east-1")
-        self.pc.create_index(
-            self.index_name,
-            dimension=embedding_dimension,
-            metric='cosine',
-            spec=spec
-        )
+        if index_exists:
+            # Check if the dimension matches
+            for idx in existing_indexes:
+                if idx["name"] == self.index_name:
+                    if idx["dimension"] == embedding_dimension:
+                        print(f"Index '{self.index_name}' already exists with the correct dimension. Skipping recreation.")
+                        break
+                    else:
+                        print(f"Index '{self.index_name}' exists but with a different dimension. Deleting it to reset...")
+                        self.pc.delete_index(self.index_name)
+                        # Wait for the index to be fully deleted
+                        while self.index_name in [idx["name"] for idx in self.pc.list_indexes()]:
+                            time.sleep(1)
+                        break
+        else:
+            print(f"Index '{self.index_name}' does not exist. Creating it...")
+
+        # Create the index if it doesn't exist or was deleted
+        if not index_exists or idx["dimension"] != embedding_dimension:
+            print(f"Creating index '{self.index_name}' with dimension {embedding_dimension}...")
+            spec = ServerlessSpec(cloud="aws", region="us-east-1")
+            self.pc.create_index(
+                self.index_name,
+                dimension=embedding_dimension,
+                metric='cosine',
+                spec=spec
+            )
 
         # Wait for the index to be ready
         while not self.pc.describe_index(self.index_name).status['ready']:
@@ -224,7 +238,9 @@ class LLM:
         res = self.index.query(vector=xq, top_k=top_k, include_metadata=True)
         # get doc text
         docs = [x["metadata"]['context'] for x in res["matches"]]
-        return docs
+        # Format the documents into a readable string
+        formatted_docs = "\n\n".join([f"Document {i+1}:\n{doc}" for i, doc in enumerate(docs)])
+        return formatted_docs
     
     def Inital_prompt(self):
         prompt_template = f"""
@@ -288,12 +304,20 @@ class LLM:
         # Step 1: Prepare conversation history
         temp_text = self.prepare_conversation_history(user_input)
 
+        docs = self.get_docs(user_input, 3)
+
         bar_change(0, 5, "Is it a question?")
 
         # Step 2: Determine if the input is a question
         v = self.is_question(user_input)
+        print(f"\nIs it a question? {v}\n")
 
-        is_important = self.is_important(user_input)
+        is_important = self.is_important(user_input,v)
+
+        completed, _ = self.check_stage_completion()
+
+        if completed:
+            return "End"
 
         if is_important:
 
@@ -315,7 +339,7 @@ class LLM:
 
             # Step 5: Generate feedback and refine the response (first iteration)
             feedback1 = self.feedback(
-                user_input, self_consistency1, temp_text
+                user_input, self_consistency1, temp_text, docs
             )
 
             refine1 = self.refine(
@@ -330,7 +354,7 @@ class LLM:
             bar_change(40, 50, "Generating feedback and refining response...")
 
             feedback1 = self.feedback(
-                user_input, redirect, temp_text
+                user_input, redirect, temp_text, docs
             )
             refine1 = self.refine(
                 redirect, user_input, feedback1, temp_text
@@ -340,7 +364,7 @@ class LLM:
 
         # Step 6: Generate feedback and refine the response (second iteration)
         feedback2 = self.feedback(
-            user_input, refine1, temp_text
+            user_input, refine1, temp_text, docs
         )
         refine2 = self.refine(
             refine1, user_input, feedback2, temp_text
@@ -360,11 +384,8 @@ class LLM:
         # Step 8: Update conversation history and return the final response
         self.update_conversation_history(refine2)
 
-        not_completed, _ = self.check_stage_completion()
-        if not_completed:
-            return refine2
+        return refine2
         
-        return "All stages completed."
 
     # Helper Methods
     def prepare_conversation_history(self, user_input):
@@ -388,9 +409,9 @@ class LLM:
                     break
             if flag:
                 break
-        return flag, temp
+        return not flag, temp
 
-    def is_important(self, user_input):
+    def is_important(self, user_input, is_question):
         prompt = ("You will be given a user input and a numbered list of possible correct responses."
         "Compare the user input to each response. Only return the index of the response that is an exact or near-exact match. If none match, return -1.\n\n"
         "Rules:\n"
@@ -466,7 +487,8 @@ class LLM:
         if response == -1:
             return False
         else:
-            self.stage_correct_response_check[temp][response] = True
+            if not is_question:
+                self.stage_correct_response_check[temp][response] = True
             return True
 
     
@@ -562,7 +584,7 @@ class LLM:
         return response.choices[0].message.content
     
     
-    def feedback(self, user_input, previous_ai_response, chat_history):
+    def feedback(self, user_input, previous_ai_response, chat_history, docs):
         feedback_prompt = f"""\nCurrent Prompt:
         You are evaluating your previous response in an interactive **scenario-based learning** environment.
 
@@ -586,6 +608,8 @@ class LLM:
         - **Weaknesses**: What areas could be improved?
         - **Actionable Suggestions**: How can the response be refined?
         - **Size**: Keep the feedback concise, ideally under 100 words.
+
+        Use the following documents (if relevant) to help you with the feedback, if they are not relevant, ignore them:\n\n{docs}
         """
         response = self.client.chat.completions.create(
             model=self.llm_name,
