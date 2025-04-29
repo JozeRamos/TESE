@@ -62,6 +62,11 @@ class LLM:
         self.next_stage_condition = data["next_stage_condition"]
         self.stages = data["stages"]
         self.tones = data["tones"]
+        self.stage_correct_response = []
+        self.stage_correct_response_check = []
+        for stage in self.stages:
+            self.stage_correct_response.append([step["correct_response"] for step in stage["stage_step"]])
+            self.stage_correct_response_check.append([False] * len(stage["stage_step"]))
 
     def _load_api_keys(self):
         with open('source/API.txt', 'r') as file:
