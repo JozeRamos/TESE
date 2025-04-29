@@ -31,14 +31,14 @@ class Chatbot:
         elif self.stage == "Options":
             if user == "1":
                 self.stage = "loop"
-                self.view.progress_bar_create()
+                # self.view.progress_bar_create()
 
-                self.view.progress_bar_percentage(1, 95, "Loading loop scenario...")
+                # self.view.progress_bar_percentage(1, 95, "Loading loop scenario...")
 
                 self.set_llm('source\\Scenarios\\loop.json')
 
-                self.view.progress_bar_percentage(95, 101, "Finishing up...")
-                self.view.progress_bar_delete()
+                # self.view.progress_bar_percentage(95, 101, "Finishing up...")
+                # self.view.progress_bar_delete()
                 
                 return "Loop scenario selected. Here is the scenario description:\n" + self.llm.get_stage_description()
             elif user == "2":

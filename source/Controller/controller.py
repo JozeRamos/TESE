@@ -286,61 +286,66 @@ class LLM:
 
     def logic(self, user_input, bar_change):
         # Step 1: Prepare conversation history
-        temp_text = self.prepare_conversation_history(user_input)
+        # temp_text = self.prepare_conversation_history(user_input)
+
         
-        bar_change(0, 5, "Is it a question?")
 
-        # Step 2: Determine if the input is a question
-        v = self.is_question(user_input)
 
-        bar_change(10, 20, "Generating CoT response...")
+        return self.is_important(user_input)
+        
+        # bar_change(0, 5, "Is it a question?")
 
-        # Step 3: Generate the chain-of-thought (CoT) response
-        cot_answer = self.generate_cot_response(
-            self.client.chat, user_input, v, temp_text
-        )
+        # # Step 2: Determine if the input is a question
+        # v = self.is_question(user_input)
 
-        bar_change(20, 30, "Performing self-consistency checks...")
+        # bar_change(10, 20, "Generating CoT response...")
 
-        # Step 4: Perform self-consistency checks
-        self_consistency1 = self.self_consistency(
-            user_input, cot_answer, 3, temp_text
-        )
+        # # Step 3: Generate the chain-of-thought (CoT) response
+        # cot_answer = self.generate_cot_response(
+        #     self.client.chat, user_input, v, temp_text
+        # )
 
-        bar_change(40, 50, "Generating feedback and refining response...")
+        # bar_change(20, 30, "Performing self-consistency checks...")
 
-        # Step 5: Generate feedback and refine the response (first iteration)
-        feedback1 = self.feedback(
-            user_input, self_consistency1, temp_text
-        )
-        refine1 = self.refine(
-            self_consistency1, user_input, feedback1, temp_text
-        )
+        # # Step 4: Perform self-consistency checks
+        # self_consistency1 = self.self_consistency(
+        #     user_input, cot_answer, 3, temp_text
+        # )
 
-        bar_change(60, 70, "Generating feedback and refining response...")
+        # bar_change(40, 50, "Generating feedback and refining response...")
 
-        # Step 6: Generate feedback and refine the response (second iteration)
-        feedback2 = self.feedback(
-            user_input, refine1, temp_text
-        )
-        refine2 = self.refine(
-            refine1, user_input, feedback2, temp_text
-        )
+        # # Step 5: Generate feedback and refine the response (first iteration)
+        # feedback1 = self.feedback(
+        #     user_input, self_consistency1, temp_text
+        # )
+        # refine1 = self.refine(
+        #     self_consistency1, user_input, feedback1, temp_text
+        # )
 
-        bar_change(85, 90, "Finalizing response...")
+        # bar_change(60, 70, "Generating feedback and refining response...")
 
-        # Step 7: Handle "next steps" if the input is not a valid question
-        if v:
-            next_steps = self.next_steps(
-                user_input, refine2, 1, temp_text
-            )
-            refine2 = refine2 + "\n\nNext Steps: " + next_steps
+        # # Step 6: Generate feedback and refine the response (second iteration)
+        # feedback2 = self.feedback(
+        #     user_input, refine1, temp_text
+        # )
+        # refine2 = self.refine(
+        #     refine1, user_input, feedback2, temp_text
+        # )
 
-        bar_change(95, 100, "Response generated.")
+        # bar_change(85, 90, "Finalizing response...")
 
-        # Step 8: Update conversation history and return the final response
-        self.update_conversation_history(refine2)
-        return refine2
+        # # Step 7: Handle "next steps" if the input is not a valid question
+        # if v:
+        #     next_steps = self.next_steps(
+        #         user_input, refine2, 1, temp_text
+        #     )
+        #     refine2 = refine2 + "\n\nNext Steps: " + next_steps
+
+        # bar_change(95, 100, "Response generated.")
+
+        # # Step 8: Update conversation history and return the final response
+        # self.update_conversation_history(refine2)
+        # return refine2
 
     # Helper Methods
     def prepare_conversation_history(self, user_input):
@@ -352,6 +357,86 @@ class LLM:
 
     def update_conversation_history(self, llm_response):
         self.chat_history.append("LLM message: (" + llm_response + ")\n")
+
+
+    def is_important(self, user_input):
+        prompt = ("You will be given a user input and a numbered list of possible correct responses."
+        "Compare the user input to each response. Only return the index of the response that is an exact or near-exact match. If none match, return -1.\n\n"
+        "Rules:\n"
+        "- Do not guess or infer based on vague similarity.\n"
+        "- Only match if the meaning is directly and clearly aligned.\n"
+        "- Return just the index (e.g., -1, 0, 1, 2...)\n\n"
+        "Possible responses:\n"
+        )
+        temp = 0
+        for index, stage in enumerate(self.stage_correct_response_check):
+            flag = False
+            for value in stage:
+                if value == False:
+                    flag = True
+                    temp = index
+                    break
+            if flag:
+                break
+        for index, correct_response in enumerate(self.stage_correct_response[temp]):
+            prompt += f"{index}: {correct_response}\n"
+        prompt += f"\nUser Input:\n{user_input}\n\nReturn only the index or -1 (e.g., -1, 0, 1, 2...)."
+        prompt += ( "Examples:\n"
+        "---\n"
+        "User Input:\nI would take their blood pressure.\n"
+        "Correct Responses:\n"
+        "0: Check the patients pulse\n"
+        "1: Administer CPR\n"
+        "2: Measure the patients blood pressure\n"
+        "3: Call for emergency support\n"
+        "Answer: 2\n"
+        "---\n"
+        "User Input:\nSee if they are alive.\n"
+        "Correct Responses:\n"
+        "0: Check the patients pulse\n"
+        "1: Administer CPR\n"
+        "2: Measure the patiens blood pressure\n"
+        "3: Call for emergency support\n"
+        "Answer: -1\n"
+        "---\n"
+        "User Input:\nUse a for loop to print numbers 1 to 10.\n"
+        "Correct Responses:\n"
+        "0: Define a function in Python\n"
+        "1: Use a for loop to print numbers 1 to 10\n"
+        "2: Create a list with 10 elements\n"
+        "3: Write a recursive factorial function\n"
+        "Answer: 1\n"
+        "---\n"
+        "User Input:\nMake something that repeats printing numbers.\n"
+        "Correct Responses:\n"
+        "0: Define a function in Python\n"
+        "1: Use a for loop to print numbers 1 to 10\n"
+        "2: Create a list with 10 elements\n"
+        "3: Write a recursive factorial function\n"
+        "Answer: -1\n"
+        "---\n"
+        "User Input:\nI would simplify the fraction.\n"
+        "Correct Responses:\n"
+        "0: Multiply both sides of the equation by 2\n"
+        "1: Simplify the fraction\n"
+        "2: Factor the quadratic\n"
+        "3: Convert the decimal to a fraction\n"
+        "Answer: 1\n"
+        "---\n"
+        "User Input:\nMake the number smaller.\n"
+        "Correct Responses:\n"
+        "0: Multiply both sides of the equation by 2\n"
+        "1: Simplify the fraction\n"
+        "2: Factor the quadratic\n"
+        "3: Convert the decimal to a fraction\n"
+        "Answer: -1\n"
+        "---\n"
+        )
+        response = self.client.chat.completions.create(
+            model=self.llm_name,
+            messages=[{"role": "user", "content": prompt + user_input}]
+        )
+        return response.choices[0].message.content
     
 
     
