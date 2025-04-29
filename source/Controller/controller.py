@@ -301,87 +301,65 @@ class LLM:
 
 
     def logic(self, user_input, bar_change):
-        # Step 1: Prepare conversation history
-        temp_text = self.prepare_conversation_history(user_input)
+        """
+        Performs the logic for generating a response based on the user input.
 
+        Args:
+            user_input (str): The user's input.
+            bar_change (function): A function to update the progress bar.
+
+        Returns:
+            str: The final response generated based on the logic.
+        """
+        # Step 1: Prepare conversation history
+        bar_change(0, 5, "Is it a question?")
+        temp_text = self.prepare_conversation_history(user_input)
         docs = self.get_docs(user_input, 3)
 
-        bar_change(0, 5, "Is it a question?")
-
-        # Step 2: Determine if the input is a question
-        v = self.is_question(user_input)
-        print(f"\nIs it a question? {v}\n")
-
-        is_important = self.is_important(user_input,v)
-
+        # Step 2: Determine input type
+        bar_change(5, 15, "Is it a question\important?")
+        is_question = self.is_question(user_input)
+        is_important = self.is_important(user_input, is_question)
         completed, _ = self.check_stage_completion()
 
+        # Check if the stage is completed
         if completed:
+            bar_change(15, 101, "Ending stage.")
             return "End"
 
         if is_important:
-
-            bar_change(10, 20, "Generating CoT response...")
-
-            # Step 3: Generate the chain-of-thought (CoT) response
-            cot_answer = self.generate_cot_response(
-                self.client.chat, user_input, v, temp_text
-            )
+            # Step 3: Handle important input
+            bar_change(15, 20, "Generating CoT response...")
+            cot_answer = self.generate_cot_response(self.client.chat, user_input, is_question, temp_text)
 
             bar_change(20, 30, "Performing self-consistency checks...")
-
-            # Step 4: Perform self-consistency checks
-            self_consistency1 = self.self_consistency(
-                user_input, cot_answer, 3, temp_text
-            )
+            self_consistency1 = self.self_consistency(user_input, cot_answer, 3, temp_text)
 
             bar_change(40, 50, "Generating feedback and refining response...")
-
-            # Step 5: Generate feedback and refine the response (first iteration)
-            feedback1 = self.feedback(
-                user_input, self_consistency1, temp_text, docs
-            )
-
-            refine1 = self.refine(
-                self_consistency1, user_input, feedback1, temp_text
-            )
-        
+            feedback1 = self.feedback(user_input, self_consistency1, temp_text, docs)
+            refine1 = self.refine(self_consistency1, user_input, feedback1, temp_text)
         else:
-            bar_change(10, 20, "Redirecting user...")
-
+            # Step 4: Handle non-important input
+            bar_change(15, 25, "Redirecting user...")
             redirect = self.redirect_user(user_input, temp_text)
 
             bar_change(40, 50, "Generating feedback and refining response...")
+            feedback1 = self.feedback(user_input, redirect, temp_text, docs)
+            refine1 = self.refine(redirect, user_input, feedback1, temp_text)
 
-            feedback1 = self.feedback(
-                user_input, redirect, temp_text, docs
-            )
-            refine1 = self.refine(
-                redirect, user_input, feedback1, temp_text
-            )
-
+        # Step 5: Refine response (second iteration)
         bar_change(60, 70, "Generating feedback and refining response...")
+        feedback2 = self.feedback(user_input, refine1, temp_text, docs)
+        refine2 = self.refine(refine1, user_input, feedback2, temp_text)
 
-        # Step 6: Generate feedback and refine the response (second iteration)
-        feedback2 = self.feedback(
-            user_input, refine1, temp_text, docs
-        )
-        refine2 = self.refine(
-            refine1, user_input, feedback2, temp_text
-        )
-
+        # Step 6: Finalize response
         bar_change(85, 90, "Finalizing response...")
-
-        # Step 7: Handle "next steps" if the input is a question
-        if v:
-            next_steps = self.next_steps(
-                user_input, refine2, 1, temp_text
-            )
+        if is_question:
+            next_steps = self.next_steps(user_input, refine2, 1, temp_text)
             refine2 = refine2 + "\n\nNext Steps: " + next_steps
 
+        # Step 7: Update conversation history
         bar_change(95, 100, "Response generated.")
-
-        # Step 8: Update conversation history and return the final response
         self.update_conversation_history(refine2)
 
         return refine2

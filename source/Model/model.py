@@ -55,6 +55,7 @@ class Chatbot:
                     self.llm = None
                     return "Congratulations you completed the Loop scenario.\n\nChoose a new scenario:\n1. Loop Scenario"
                 else:
+                    self.view.progress_bar_delete()
                     return message
             else:
                 return "Invalid command."
