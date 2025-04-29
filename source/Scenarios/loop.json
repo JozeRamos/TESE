@@ -15,29 +15,37 @@
     "next_stage_condition": "Proceed only if the user correctly identifies a flaw in the function's base case or recursive step.",
     
     "stages": [
-        {
-            "description": "The function takes an integer `n` but runs indefinitely when `n=5`, consuming system resources and eventually causing a stack overflow.",
-            "hint": "Ask yourself: under what condition should the function stop calling itself?",
-            "correct_response": "Check if the base case is missing or incorrectly defined.",
-            "positive_feedback": "Nice work! A function that keeps calling itself forever is a sign something isn't telling it to stop.",
-            "incorrect_response": "Modify the recursive call first.",
-            "constructive_feedback": "Think about why the function doesnt know when to stop. What would tell it to halt?"
+        {"stage_step":
+            [
+                {
+                    "description": "The function takes an integer `n` but runs indefinitely when `n=5`, consuming system resources and eventually causing a stack overflow.",
+                    "hint": "Ask yourself: under what condition should the function stop calling itself?",
+                    "correct_response": "Check if the base case is missing or incorrectly defined."
+                },
+                {
+                    "description": "FDAS",
+                    "hint": "SAD",
+                    "correct_response": "FASD."
+                }
+            ]
         },
-        {
-            "description": "You have identified that the function lacks a correct base case. Now, you need to define an appropriate stopping condition.",
-            "hint": "Consider the smallest input that doesnt require further breakdown.",
-            "correct_response": "Ensure the function returns `1` when `n` is `0`.",
-            "positive_feedback": "Good thinking! A solid stopping condition keeps recursion in check.",
-            "incorrect_response": "Set the base case to return `0` when `n=1`.",
-            "constructive_feedback": "Not quite! The base case should reflect a fundamental property of the problem."
+        {"stage_step":
+            [
+                {
+                    "description": "You have identified that the function lacks a correct base case. Now, you need to define an appropriate stopping condition.",
+                    "hint": "Consider the smallest input that doesnt require further breakdown.",
+                    "correct_response": "Ensure the function returns `1` when `n` is `0`."
+                }
+            ]
         },
-        {
-            "description": "The base case is now correct, but the function still isn't returning the expected factorial values. It's time to verify the recursive step.",
-            "hint": "Each step should bring you closer to the stopping condition while preserving the logic of the operation.",
-            "correct_response": "Ensure the function correctly multiplies `n * factorial(n-1)`.",
-            "positive_feedback": "Nice! Each step should mirror how the problem naturally reduces itself.",
-            "incorrect_response": "Subtract `2` instead of `1` in the recursive call.",
-            "constructive_feedback": "Look carefully—does each step truly lead to the stopping point, or is something being skipped?"
+        {"stage_step":
+            [
+                {
+                    "description": "The base case is now correct, but the function still isn't returning the expected factorial values. It's time to verify the recursive step.",
+                    "hint": "Each step should bring you closer to the stopping condition while preserving the logic of the operation.",
+                    "correct_response": "Ensure the function correctly multiplies `n * factorial(n-1)`."
+                }
+            ]
         }
     ],
     

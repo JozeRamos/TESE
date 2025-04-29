@@ -16,10 +16,10 @@ class Chatbot:
 
     def set_llm(self, llm):
         self.llm = LLM(llm)
-        time1 = time.time()
-        LLM.build_index(self.llm)
-        timeDif = time.time() - time1
-        print("Time taken to build index: ", timeDif)
+        # time1 = time.time()
+        # LLM.build_index(self.llm)
+        # timeDif = time.time() - time1
+        # print("Time taken to build index: ", timeDif)
 
     def get_response(self, user_input):
         user = user_input.lower()

@@ -42,13 +42,9 @@ class LLM:
         if self.index_name in [idx["name"] for idx in self.pc.list_indexes()]:
             self.index = self.pc.Index(self.index_name)
 
-        # initial = self.Inital_prompt(self.ai_role, self.user_role, self.scenario_name, self.ai_persona, self.place,
-        #             self.task, self.format, self.exemplar, self.stage_description, self.hint,
-        #                 self.positive_feedback, self.constructive_feedback,
-        #                 self.next_stage_condition, self.stages,
-        #                         self.tones[0], self.tones[1])
+        initial = self.Inital_prompt()
 
-        # self.chat_history.append("Scenario description: " + initial + "\n")
+        self.chat_history.append("Scenario description:\n" + initial + "\n")
 
     def _load_config(self, data):
         self.ai_role = data["ai_role"]
@@ -207,9 +203,6 @@ class LLM:
     def get_positive_feedback(self):
         return self.positive_feedback
 
-    def get_constructive_feedback(self):
-        return self.constructive_feedback
-
     def get_next_stage_condition(self):
         return self.next_stage_condition
 
@@ -228,20 +221,20 @@ class LLM:
         docs = [x["metadata"]['context'] for x in res["matches"]]
         return docs
     
-    def Inital_prompt(self, ai_role, user_role, scenario_name, ai_persona, place, task, format, exemplar, stage_description, hint, positive_feedback, constructive_feedback, next_stage_condition, stages, tone_1, tone_2):
+    def Inital_prompt(self):
         prompt_template = f"""
-        You are an AI agent acting as {ai_role}, assisting a user playing the role of {user_role} in the scenario "{scenario_name}". 
-        Your persona is {ai_persona}, and your goal is to guide the user through a scenario-based learning experience at {place}.
+        You are an AI agent acting as {self.ai_role}, assisting a user playing the role of {self.user_role} in the scenario "{self.scenario_name}". 
+        Your persona is {self.ai_persona}, and your goal is to guide the user through a scenario-based learning experience at {self.place}.
 
         ### Task:
-        {task} 
+        {self.task} 
         The task must be completed step by step, progressing through multiple stages. Each stage presents a new challenge or decision point.
 
         ### Format:
-        {format} 
+        {self.format} 
 
         ### Exemplar:
-        {exemplar} 
+        {self.exemplar} 
 
         ### Interaction Rules:
         - At each stage, provide an **initial prompt** describing the situation.  
@@ -250,32 +243,40 @@ class LLM:
         - Only advance the user when they make the correct or reasonable decision.  
 
         ### Response Format:
-        - **Initial Prompt**: {stage_description}  
-        - **Hints**: {hint}  
+        - **Initial Prompt**: {self.stage_description}  
+        - **Hints**: {self.hint}  
         - **Feedback**:  
-        - ✅ **Correct**: {positive_feedback}  
-        - ❌ **Incorrect**: {constructive_feedback}  
-        - **Next Stage**: {next_stage_condition}  
+        - ✅ **Correct**: {self.positive_feedback}  
+        - ❌ **Incorrect**: {self.constructive_feedback}  
+        - **Next Stage**: {self.next_stage_condition}
+        ### Stage description:
         """
 
-        for i in range(len(stages)):
-            prompt_template += f"""
-            ### Stage description:
-            ### Stage {i+1}:
-            - **Description**: {stages[i]["description"]}  
-            - **Hint**: {stages[i]["hint"]}  
-            - **Correct Response**: {stages[i]["correct_response"]} → AI: "{stages[i]["positive_feedback"]}"  
-            - **Incorrect Response**: {stages[i]["incorrect_response"]} → AI: "{stages[i]["constructive_feedback"]}"  
-            """
+        # Iterate through the stages and print descriptions
+        for i, stage in enumerate(self.stages):
+            first = True
+            for j, step in enumerate(stage["stage_step"]):
+
+                if first:
+                    prompt_template += f"""
+                ### Stage {i+1}:"""
+                    first = False
+
+                prompt_template += f"""
+                ## Step {i+1}.{j+1}:
+                    - **Description**: {step["description"]}  
+                    - **Hint**: {step["hint"]}  
+                    - **Correct Response**: {step["correct_response"]}
+                """
         
         prompt_template += f"""
         ### Tone & Style:
-        - Use a **{tone_1}** to match the urgency of the scenario.  
-        - Write in a **{tone_2}** for clarity and engagement.  
+        - Use a **{self.tones[0]}** to match the urgency of the scenario.  
+        - Write in a **{self.tones[1]}** for clarity and engagement.  
         - Maintain a **role-playing dynamic** to keep the user immersed in the experience.  
         """
         
-        return [prompt_template]
+        return prompt_template
 
 
     def logic(self, user_input, bar_change):
@@ -285,40 +286,40 @@ class LLM:
         bar_change(0, 5, "Is it a question?")
 
         # Step 2: Determine if the input is a question
-        v = self.is_question(self.client.chat, user_input)
+        v = self.is_question(user_input)
 
         bar_change(10, 20, "Generating CoT response...")
 
         # Step 3: Generate the chain-of-thought (CoT) response
         cot_answer = self.generate_cot_response(
-            self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, v, temp_text
+            self.client.chat, user_input, v, temp_text
         )
 
         bar_change(20, 30, "Performing self-consistency checks...")
 
         # Step 4: Perform self-consistency checks
         self_consistency1 = self.self_consistency(
-            self.client.chat, self.user_role, self.scenario_name, user_input, cot_answer, 3, temp_text
+            user_input, cot_answer, 3, temp_text
         )
 
         bar_change(40, 50, "Generating feedback and refining response...")
 
         # Step 5: Generate feedback and refine the response (first iteration)
         feedback1 = self.feedback(
-            self.client.chat, self.user_role, self.scenario_name, user_input, self_consistency1, temp_text
+            user_input, self_consistency1, temp_text
         )
         refine1 = self.refine(
-            self.client.chat, self_consistency1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback1, temp_text
+            self_consistency1, user_input, feedback1, temp_text
         )
 
         bar_change(60, 70, "Generating feedback and refining response...")
 
         # Step 6: Generate feedback and refine the response (second iteration)
         feedback2 = self.feedback(
-            self.client.chat, self.user_role, self.scenario_name, user_input, refine1, temp_text
+            user_input, refine1, temp_text
         )
         refine2 = self.refine(
-            self.client.chat, refine1, self.user_role, self.ai_role, self.scenario_name, user_input, feedback2, temp_text
+            refine1, user_input, feedback2, temp_text
         )
 
         bar_change(85, 90, "Finalizing response...")
@@ -326,7 +327,7 @@ class LLM:
         # Step 7: Handle "next steps" if the input is not a valid question
         if v:
             next_steps = self.next_steps(
-                self.client.chat, self.user_role, self.ai_role, self.scenario_name, user_input, refine2, 1, temp_text
+                user_input, refine2, 1, temp_text
             )
             refine2 = refine2 + "\n\nNext Steps: " + next_steps
 
@@ -349,7 +350,7 @@ class LLM:
     
 
     
-    def is_question(self, chat, user_input):
+    def is_question(self, user_input):
         input_str = user_input.strip().lower()
         question_words = ['what', 'when', 'where', 'who', 'why', 'how', 'can', 'could', 'should', 'would', 'is', 'are', 'does', 'did', 'will']
 
@@ -364,19 +365,19 @@ class LLM:
         """
 
 
-        response = chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.llm_name,
             messages=[{"role": "user", "content": user_input_prompt}]
         )
         return response.choices[0].message.content
     
     
-    def generate_cot_response(self, chat, user_role, ai_role, scenario_name, user_input, is_question, chat_history):
+    def generate_cot_response(self, chat, user_input, is_question, chat_history):
         cot_agent_prompt = f"""\nCurrent Prompt:
         You are an AI using Chain-of-Thought (CoT) to guide a user in a scenario-based learning task.
 
         Context:
-        User role: {user_role} | Scenario: "{scenario_name}"
+        User role: {self.user_role} | Scenario: "{self.scenario_name}"
         Input: "{user_input}" → Classified as {"Question" if is_question else "Action"}
 
         Instructions:
@@ -385,7 +386,7 @@ class LLM:
         If Action: Judge as valid/invalid/unclear; consider effects.
 
         Step 2 (Response):
-        Stay in-role as {ai_role}; give immersive, adaptive feedback.
+        Stay in-role as {self.ai_role}; give immersive, adaptive feedback.
 
         Output:
         Use CoT before replying.
@@ -402,13 +403,13 @@ class LLM:
         return response.choices[0].message.content
     
     
-    def self_consistency(self, chat, user_role, scenario_name, user_input, previous_ai_response, num_variations, chat_history):
+    def self_consistency(self, num_variations, chat_history):
         self_consistency_prompt = f"""\nCurrent Prompt:
         You are ensuring self-consistency in a scenario-based learning setting.
 
         Context:
-        User role: {user_role} | Scenario: "{scenario_name}"
-        Input: "{user_input}" | Prior response: "{previous_ai_response}"
+        User role: {self.user_role} | Scenario: "{self.scenario_name}"
+        Input: "{self.user_input}" | Prior response: "{self.previous_ai_response}"
 
         Instructions:
         Generate {num_variations} distinct responses, each with independent reasoning, maintaining:
@@ -429,19 +430,19 @@ class LLM:
         Output:
         A single, refined response grounded in CoT consistency and learning impact with less than 100 words.
         """
-        response = chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + self_consistency_prompt}]
         )
         return response.choices[0].message.content
     
     
-    def feedback(self, chat, user_role, scenario_name, user_input, previous_ai_response, chat_history):
+    def feedback(self, user_input, previous_ai_response, chat_history):
         feedback_prompt = f"""\nCurrent Prompt:
         You are evaluating your previous response in an interactive **scenario-based learning** environment.
 
         ### Context:
-        - The user, acting as **{user_role}**, is navigating the scenario **"{scenario_name}"**.
+        - The user, acting as **{self.user_role}**, is navigating the scenario **"{self.scenario_name}"**.
         - The user's input was: **"{user_input}"**.
         - Your initial response was: **"{previous_ai_response}"**.
 
@@ -461,18 +462,18 @@ class LLM:
         - **Actionable Suggestions**: How can the response be refined?
         - **Size**: Keep the feedback concise, ideally under 100 words.
         """
-        response = chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + feedback_prompt}]
         )
         return response.choices[0].message.content
 
-    def refine(self, chat, previous_ai_response, user_role, ai_role, scenario_name, user_input, self_feedback, chat_history):
+    def refine(self, previous_ai_response, user_input, self_feedback, chat_history):
         refinement_prompt = f"""\nCurrent Prompt:
         You are refining your previous response based on self-evaluation.
 
         ### Context:
-        - The user, acting as **{user_role}**, is in the scenario **"{scenario_name}"**.
+        - The user, acting as **{self.user_role}**, is in the scenario **"{self.scenario_name}"**.
         - Their input was: **"{user_input}"**.
         - Your initial response was: **"{previous_ai_response}"**.
         - Your self-evaluation feedback was: **"{self_feedback}"**.
@@ -482,32 +483,32 @@ class LLM:
         1. **Addresses Weaknesses**: Correct any inaccuracies or vague explanations.
         2. **Enhances Guidance**: If the users input was a question, make the hints **more subtle yet effective**.
         3. **Improves Feedback Quality**: If the users input was an action, ensure the response **reinforces learning**.
-        4. **Maintains Engagement**: Keep responses immersive, in-character as **{ai_role}**, and scenario-appropriate.
+        4. **Maintains Engagement**: Keep responses immersive, in-character as **{self.ai_role}**, and scenario-appropriate.
         5. **Increases Clarity**: Ensure the response is **concise, easy to understand, and pedagogically sound**.
 
         ### Output:
         Provide an improved version of your original response, ensuring it meets the refinement criteria while preserving scenario immersion and with less than 100 words.
         """
-        response = chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + refinement_prompt}]
         )
         return response.choices[0].message.content
     
     
-    def next_steps(self, chat, user_role, ai_role, scenario_name, user_action, previous_ai_response, current_stage, chat_history):
+    def next_steps(self, user_action, previous_ai_response, current_stage, chat_history):
         hint_prompt = f"""\nCurrent Prompt:
         You are guiding a user through a scenario-based learning task by giving subtle, role-appropriate hints.
 
         Context:
-        Role: {user_role} | Scenario: "{scenario_name}" | Stage: {current_stage}
+        Role: {self.user_role} | Scenario: "{self.scenario_name}" | Stage: {current_stage}
         Last action: "{user_action}"
         Your last response: "{previous_ai_response}"
 
         Instructions:
         Assess the users action.
         Give a subtle hint that encourages critical thinking—never reveal the answer.
-        Stay in-character as {ai_role} and aligned with the scenario.
+        Stay in-character as {self.ai_role} and aligned with the scenario.
 
         Hint Strategy:
         Correct → Nudge toward the next logical step.
@@ -517,7 +518,7 @@ class LLM:
         Output:
         One immersive, hint-based response—subtle, clear, and pedagogically effective with less than 100 words.
         """
-        response = chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + hint_prompt}]
         )
