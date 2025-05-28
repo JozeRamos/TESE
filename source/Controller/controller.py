@@ -313,14 +313,14 @@ class LLM:
         """
         # Step 1: Prepare conversation history
         bar_change(0, 5, "Is it a question?")
-        temp_text = self.prepare_conversation_history(user_input)
+        temp_text = self.prepare_conversation_history()
         docs = self.get_docs(user_input, 3)
 
         # Step 2: Determine input type
         bar_change(5, 15, "Is it a question\important?")
         is_question = self.is_question(user_input)
         is_important = self.is_important(user_input, is_question)
-        completed, _ = self.check_stage_completion()
+        completed, _ = self.check_stage_completion() #if not question
 
         # Check if the stage is completed
         if completed:
@@ -330,7 +330,7 @@ class LLM:
         if is_important:
             # Step 3: Handle important input
             bar_change(15, 20, "Generating CoT response...")
-            cot_answer = self.generate_cot_response(self.client.chat, user_input, is_question, temp_text)
+            cot_answer = self.generate_cot_response(user_input, is_question, temp_text)
 
             bar_change(20, 30, "Performing self-consistency checks...")
             self_consistency1 = self.self_consistency(user_input, cot_answer, 3, temp_text)
@@ -360,21 +360,24 @@ class LLM:
 
         # Step 7: Update conversation history
         bar_change(95, 100, "Response generated.")
-        self.update_conversation_history(refine2)
+        self.update_conversation_history(refine2, user_input)
 
         return refine2
         
 
     # Helper Methods
-    def prepare_conversation_history(self, user_input):
+    def prepare_conversation_history(self):
         temp_text = "Here are the previous messages in the conversation:\n"
-        for message in self.chat_history:
-            temp_text += message
-        self.chat_history.append("User message: (" + user_input + ")\n")
+        if len(self.chat_history) > 5:
+            temp_text += "".join(self.chat_history[0])  # First message
+            temp_text += "... (skipping some messages) ...\n"
+            temp_text += "".join(self.chat_history[-4:])  # Last five messages
+        else:
+            temp_text += "".join(self.chat_history)  # All messages
         return temp_text
 
-    def update_conversation_history(self, llm_response):
-        self.chat_history.append("LLM message: (" + llm_response + ")\n")
+    def update_conversation_history(self, llm_response, user_input):
+        self.chat_history.append("User message: (" + user_input + ")\nLLM message: (" + llm_response + ")\n")
 
     def check_stage_completion(self):        
         flag = False
@@ -497,7 +500,7 @@ class LLM:
             return False
     
     
-    def generate_cot_response(self, chat, user_input, is_question, chat_history):
+    def generate_cot_response(self, user_input, is_question, chat_history):
         cot_agent_prompt = f"""\nCurrent Prompt:
         You are an AI using Chain-of-Thought (CoT) to guide a user in a scenario-based learning task.
 
@@ -520,7 +523,7 @@ class LLM:
         """
 
 
-        response = chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.llm_name,
             messages=[{"role": "user", "content": chat_history + cot_agent_prompt}]
         )
