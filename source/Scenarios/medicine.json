@@ -15,6 +15,20 @@
     "stages": [
         {
             "stage_step": [
+                [
+                    "Ask for blood pressure: 210/105 mmHg",
+                    "Ask for heart rate: 87 bpm",
+                    "Ask for respiratory rate: 16 breaths/min",
+                    "Ask for patient temperature: 36.6°C",
+                    "Ask for oxygen saturation: 99% on room air.",
+                    "ECG monitoring: the patient has a regular cardiac rhythm with 85bpm.",
+                    "Measure glycemia: at presentation 105mg/dL.",
+                    "Ask for blood samples: Take blood samples and send for analysis.",
+                    "Ask for patient medication: The patient is not taking any medication, including anticoagulants.",
+                    "When was the patient last seen well: The patient was last seen well 3 hours before admission.",
+                    "Ask for medical history: The patient has no known cardiovascular risk factors including hypertension, diabetes, dyslipidemia, cigarette smoking or alcohol consumption.",
+                    "Ask for weight: the weight is 80Kg."
+                ],
                 {
                   "description": "Check the patient's blood pressure to assess cardiovascular status.",
                   "hint": "Consider a vital sign that indicates circulatory function.",
@@ -54,6 +68,32 @@
         },
         {
             "stage_step": [
+                [
+                    "Ask for a CT scan: non-contrast CT scan should be always performed before angiography to exclude haemorrhage and stroke mimics. Non-contrast CT scan showed no signs of acute ischemic stroke or haemorrhage.",
+                    "Ask for blood samples: Take blood samples and send for analysis.",
+                    "Ask for patient medication: The patient is not taking any medication, including anticoagulants.",
+                    "When was the patient last seen well: The patient was last seen well 3 hours before admission.",
+                    "Ask for medical history: The patient has no known cardiovascular risk factors including hypertension, diabetes, dyslipidemia, cigarette smoking or alcohol consumption.",
+                    "Ask for weight: the weight is 80Kg."
+                ],
+                {
+                    "description": "Order an imaging study to rule out hemorrhage or stroke mimics before proceeding with angiography.",
+                    "hint": "Think about the first-line brain imaging often done without contrast in suspected stroke cases.",
+                    "correct_response": "Ask for a CT scan"
+                }                  
+            ]
+        },
+        {
+            "stage_step": [
+                [
+                    "When was the patient last seen well: The patient was last seen well 3 hours before admission.",
+                    "Lower blood pressure: Lower blood pressure to a target of less or equal to 185/110mmHg. The drugs labetalol, nitrates, urapidil can be used.",
+                    "Ask for blood samples: Take blood samples and send for analysis.",
+                    "Ask for medical history: The patient has no known cardiovascular risk factors including hypertension, diabetes, dyslipidemia, cigarette smoking or alcohol consumption.",
+                    "Ask for patient medication: The patient is not taking any medication, including anticoagulants.",
+                    "Ask for a CT angiogram: showed a proximal occlusion of the M1 segment of left medial cerebral artery.",
+                    "Ask for weight: the weight is 80Kg."
+                ],
                 {
                   "description": "Determine the time the patient was last in their normal state before the current condition began.",
                   "hint": "This helps establish the timeline for symptom onset.",
@@ -83,6 +123,10 @@
         },
         {
             "stage_step": [
+                [
+                    "Perform thrombolysis: Thrombolysis should be done up to 4.5h after the patient was last seen well. The recommended dose of alteplase is 0.9mg/Kg, for a maximum total dose of 90mg. The IV bolus dose is 10% of the 0.9 mg/kg treatment dose over 1 minute, followed by an intravenous infusion of the remaining 90% over 60min. The recommended dose of tenecteplase is 0.25mg/Kg given as a single bolus (maximum dose of 25mg).",
+                    "Ask for a CT angiogram: showed a proximal occlusion of the M1 segment of left medial cerebral artery."
+                ],
                 {
                     "description": "Initiate thrombolytic therapy within the therapeutic window for ischemic stroke using alteplase or tenecteplase, following dosage protocols based on patient weight.",
                     "hint": "Consider time since symptom onset and weight-based medication dosing for clot dissolution.",
@@ -92,6 +136,10 @@
         },
         {
             "stage_step": [
+                [
+                    "Check blood analysis: Blood analysis were available 1h after admission and were unremarkable, coagulation was normal and platelets were 250.000.",
+                    "Ask for a CT angiogram: showed a proximal occlusion of the M1 segment of left medial cerebral artery."
+                ],
                 {
                   "description": "Review the patient's blood analysis to check for any abnormalities or signs of coagulopathy.",
                   "hint": "Look into lab results that reflect hematological and coagulation status.",
@@ -106,11 +154,14 @@
         },
         {
             "stage_step": [
+                [
+                    "Perform thrombectomy: Contact neuroradiology to perform thrombectomy."
+                ],
                 {
                     "description": "Initiate appropriate intervention for a patient with an ischemic stroke who is a candidate for clot retrieval.",
                     "hint": "Think about involving a specialist to remove a cerebral clot.",
-                    "correct_response": "Perform thrombectomy: Contact neuroradiology to perform thrombectomy."
-                  }                  
+                    "correct_response": "Perform thrombectomy"
+                }                  
             ]
         }
     ],

@@ -14,6 +14,7 @@
     "next_stage_condition": "Proceed once the user decides to prompt for meal count and plans to loop through input.",
     "stages": [
         {"stage_step": [
+            [],
             {
                 "description": "Ask the user how many meals they had today and store that number in a variable.",
                 "hint": "How do you get user input in Python?",
@@ -21,6 +22,7 @@
             }
         ]},
         {"stage_step": [
+            [],
             {
                 "description": "Now loop through each meal and ask the user to enter the number of calories.",
                 "hint": "How do you get all the calorie inputs in a single run?",
@@ -33,6 +35,7 @@
             }
         ]},
         {"stage_step": [
+            [],
             {
                 "description": "Output the total calories and give a message based on the total.",
                 "hint": "Now that you have the total, how will you provide the feedback?",

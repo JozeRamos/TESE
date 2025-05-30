@@ -17,6 +17,7 @@
     "stages": [
         {
             "stage_step": [
+                [],
                 {
                     "description": "Some students are receiving grades of 0 or 'None'.",
                     "hint": "Students are receiving grades of 0 or 'None', why is that?",
@@ -31,6 +32,7 @@
         },
         {
             "stage_step": [
+                [],
                 {
                     "description": "The grades now appear accurate for most students, but some entries result in errors or are skipped altogether.",
                     "hint": "Sometime CSV files may have wrong data on them, how can you circunvent that?.",
