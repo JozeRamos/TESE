@@ -64,6 +64,7 @@ class LLM:
         self.tones = data["tones"]
         self.stage_correct_response = []
         self.stage_correct_response_check = []
+        self.current_stage = 1
         for stage in self.stages:
             self.stage_correct_response.append([step["correct_response"] for step in stage["stage_step"]])
             self.stage_correct_response_check.append([False] * len(stage["stage_step"]))
@@ -320,7 +321,7 @@ class LLM:
         bar_change(5, 15, "Is it a question\important?")
         is_question = self.is_question(user_input)
         is_important = self.is_important(user_input, is_question)
-        completed, _ = self.check_stage_completion() #if not question
+        completed, self.current_stage = self.check_stage_completion() #if not question
 
         # Check if the stage is completed
         if completed:
@@ -354,8 +355,8 @@ class LLM:
 
         # Step 6: Finalize response
         bar_change(85, 90, "Finalizing response...")
-        if is_question:
-            next_steps = self.next_steps(user_input, refine2, 1, temp_text)
+        if is_question or is_important:
+            next_steps = self.next_steps(user_input, refine2, temp_text)
             refine2 = refine2 + "\n\nNext Steps: " + next_steps
 
         # Step 7: Update conversation history
@@ -402,9 +403,7 @@ class LLM:
         "Possible responses:\n"
         )
 
-        _, temp = self.check_stage_completion()
-
-        for index, correct_response in enumerate(self.stage_correct_response[temp]):
+        for index, correct_response in enumerate(self.stage_correct_response[self.current_stage]):
             prompt += f"{index}: {correct_response}\n"
 
         prompt += f"\nUser Input:\n{user_input}\n\nReturn only the index or -1 (e.g., -1, 0, 1, 2...)."
@@ -469,7 +468,7 @@ class LLM:
             return False
         else:
             if not is_question:
-                self.stage_correct_response_check[temp][response] = True
+                self.stage_correct_response_check[self.current_stage][response] = True
             return True
 
     
@@ -648,10 +647,9 @@ class LLM:
         The following are the correct responses for the current stage, make sure to not mention them directly:
         index: correct response --> check
         """
-        _, temp = self.check_stage_completion()
 
-        for index, correct_response in enumerate(self.stage_correct_response[temp]):
-            hint_prompt += f"{index}: {correct_response} --> {self.stage_correct_response_check[temp][index]}\n"
+        for index, correct_response in enumerate(self.stage_correct_response[self.current_stage]):
+            hint_prompt += f"{index}: {correct_response} --> {self.stage_correct_response_check[self.current_stage][index]}\n"
 
         hint_prompt += f"""\n
         Output:
@@ -664,15 +662,22 @@ class LLM:
         )
         return response.choices[0].message.content
 
-    def next_steps(self, user_action, previous_ai_response, current_stage, chat_history):
+    def next_steps(self, user_action, previous_ai_response, chat_history):
         hint_prompt = f"""\nCurrent Prompt:
         You are guiding a user through a scenario-based learning task by giving subtle, role-appropriate hints.
 
         Context:
-        Role: {self.user_role} | Scenario: "{self.scenario_name}" | Stage: {current_stage}
+        Role: {self.user_role} | Scenario: "{self.scenario_name}" | Stage: {self.current_stage}
         Last action: "{user_action}"
         Your last response: "{previous_ai_response}"
 
+        Next Steps Description:
+        """
+        for index, complete in enumerate(self.stage_correct_response_check[self.current_stage]):
+            if not complete:
+                hint_prompt += f"""{index}: {self.stages[self.current_stage][index]}\n"""
+
+        hint_prompt += f"""
         Instructions:
         Assess the users action.
         Give a subtle hint that encourages critical thinking—never reveal the answer.

@@ -1,0 +1,121 @@
+{
+    "ai_role": "Neurologist",
+    "user_role": "Medical Trainee",
+    "scenario_name": "Code Stroke - Acute Treatment",
+    "ai_persona": "Supportive and clinically rigorous neurologist guiding emergency stroke care decisions.",
+    "place": "Emergency Room",
+    "task": "Manage an acute ischemic stroke patient using available diagnostics and treatment options.",
+    "format": "Interactive scenario-based learning with sequential decision-making.",
+    "exemplar": "Ask for vital signs, perform CT scan, assess eligibility for thrombolysis, and decide on thrombectomy.",
+    "stage_description": "A 70-year-old man presents in the emergency room after being found by his spouse unable to speak and unable to move his right arm. At admission he had right hemianopsia, his right arm was paretic, his leg has diminished strength against resistance, he was unable to speak or follow commands.\n\nAs a Neurologist, how would you approach such a situation? You can ask for clinical information, such as asking for exams and give medication to the patient. E.g. What are the patient vital signs?",
+    "hint": "Start with basic assessment and stabilize vital signs before proceeding to advanced imaging or treatments.",
+    "positive_feedback": "Excellent decision! You prioritized time-sensitive interventions and considered stroke guidelines.",
+    "constructive_feedback": "Consider the timing of symptom onset and contraindications before administering thrombolysis.",
+    "next_stage_condition": "Once the patient is stabilized and all imaging/lab results are reviewed, proceed to definitive therapy.",
+    "stages": [
+        {
+            "stage_step": [
+                {
+                  "description": "Check the patient's blood pressure to assess cardiovascular status.",
+                  "hint": "Consider a vital sign that indicates circulatory function.",
+                  "correct_response": "Ask for blood pressure"
+                },
+                {
+                  "description": "Assess the patient's heart rate to determine pulse strength and rhythm.",
+                  "hint": "Think about how you would evaluate the pulse.",
+                  "correct_response": "Ask for heart rate"
+                },
+                {
+                  "description": "Evaluate the patient's respiratory rate to check for breathing abnormalities.",
+                  "hint": "Focus on how frequently the patient breathes.",
+                  "correct_response": "Ask for respiratory rate"
+                },
+                {
+                  "description": "Take the patient's body temperature to check for fever or hypothermia.",
+                  "hint": "This measure can indicate infection or thermal regulation issues.",
+                  "correct_response": "Ask for patient temperature"
+                },
+                {
+                  "description": "Determine the oxygen saturation to evaluate the patient's respiratory efficiency.",
+                  "hint": "Think about how to assess oxygen levels non-invasively.",
+                  "correct_response": "Ask for oxygen saturation"
+                },
+                {
+                  "description": "Monitor the patient's cardiac activity with an ECG to detect arrhythmias or ischemia.",
+                  "hint": "Use a tool that gives a visual representation of the heart's electrical activity.",
+                  "correct_response": "ECG monitoring"
+                },
+                {
+                  "description": "Measure blood glucose levels to assess for hypoglycemia or hyperglycemia.",
+                  "hint": "This involves checking a key metabolic parameter with a drop of blood.",
+                  "correct_response": "Measure glycemia"
+                }
+              ]              
+        },
+        {
+            "stage_step": [
+                {
+                  "description": "Determine the time the patient was last in their normal state before the current condition began.",
+                  "hint": "This helps establish the timeline for symptom onset.",
+                  "correct_response": "When was the patient last seen well"
+                },
+                {
+                  "description": "Initiate measures to reduce elevated blood pressure to a specific target to enable safe treatment.",
+                  "hint": "Focus on managing hypertension to meet clinical thresholds.",
+                  "correct_response": "Lower blood pressure"
+                },
+                {
+                  "description": "Collect laboratory samples to support diagnostic and treatment decisions.",
+                  "hint": "These are often taken using a syringe or vacutainer.",
+                  "correct_response": "Ask for blood samples"
+                },
+                {
+                  "description": "Gather information about the patient's prior health conditions or risk factors.",
+                  "hint": "Useful for understanding predispositions or chronic issues.",
+                  "correct_response": "Ask for medical history"
+                },
+                {
+                  "description": "Check if the patient is currently taking any prescribed or over-the-counter medications.",
+                  "hint": "This includes regular drugs or recent treatments.",
+                  "correct_response": "Ask for patient medication"
+                }
+              ]              
+        },
+        {
+            "stage_step": [
+                {
+                    "description": "Initiate thrombolytic therapy within the therapeutic window for ischemic stroke using alteplase or tenecteplase, following dosage protocols based on patient weight.",
+                    "hint": "Consider time since symptom onset and weight-based medication dosing for clot dissolution.",
+                    "correct_response": "Perform thrombolysis"
+                  }                  
+            ]
+        },
+        {
+            "stage_step": [
+                {
+                  "description": "Review the patient's blood analysis to check for any abnormalities or signs of coagulopathy.",
+                  "hint": "Look into lab results that reflect hematological and coagulation status.",
+                  "correct_response": "Check blood analysis"
+                },
+                {
+                  "description": "Order imaging to evaluate for vascular occlusion in the brain.",
+                  "hint": "Consider advanced imaging that visualizes cerebral blood vessels.",
+                  "correct_response": "Ask for a CT angiogram"
+                }
+            ]              
+        },
+        {
+            "stage_step": [
+                {
+                    "description": "Initiate appropriate intervention for a patient with an ischemic stroke who is a candidate for clot retrieval.",
+                    "hint": "Think about involving a specialist to remove a cerebral clot.",
+                    "correct_response": "Perform thrombectomy: Contact neuroradiology to perform thrombectomy."
+                  }                  
+            ]
+        }
+    ],
+    "tones": [
+        "Clinical",
+        "Encouraging"
+    ]
+}

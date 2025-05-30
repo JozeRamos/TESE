@@ -1,0 +1,45 @@
+{
+    "ai_role": "Virtual Mentor",
+    "user_role": "Junior Developer",
+    "scenario_name": "Optimize the Ride-Sharing Algorithm",
+    "ai_persona": "Systems Architect with deep knowledge in algorithms and performance tuning",
+    "place": "A tech startup developing a ride-sharing backend during a traffic-heavy event",
+    "task": "Analyze and improve an inefficient driver-rider matching algorithm to reduce assignment time and system lag.",
+    "format": "Step-by-step optimization scenario involving analysis, algorithm design, and implementation tuning.",
+    "exemplar": "User: 'The current method checks every driver for each rider.' → AI: 'Yes, thats an O(n^2) approach. Can we improve the lookup time?'",
+    "stage_description": "You're assigned to optimize and test the matching system for peak-hour ride requests. The current solution loops over all drivers for every rider.\n\n What would be the time complexity of this approach, why is it inefficient during high traffic, and how can you improve it?",
+    "hint": "Think about data structures that make spatial or distance queries more efficient.",
+    "positive_feedback": "Exactly! Using better data structures can drastically reduce lookup time.",
+    "constructive_feedback": "Looping through every option is costly. Is there a way to index drivers by proximity?",
+    "next_stage_condition": "Proceed if the user suggests a spatial or priority-based structure like heaps or maps.",
+    "stages": [
+        {"stage_step": [
+            {
+                "description": "The current code loops through all drivers for every rider. Propose a more efficient structure.",
+                "hint": "Is there a way to not loop through all drives for every rider?",
+                "correct_response": "Suggest using spatial hashing, a k-d tree, or a heap for nearby driver selection."
+            },            
+            {
+                "description": "Why is this inefficient during high traffic times?",
+                "hint": "Think in terms of scale: what happens when thousands of requests come in?",
+                "correct_response": "Acknowledge the performance bottleneck due to nested loops and scaling issues."
+            },
+            {
+                "description": "Review the current matching method: it loops through every driver for each rider. What is the time complexity?",
+                "hint": "How many operations if there are n drivers and m riders?",
+                "correct_response": "Recognize that it's an O(n * m) or O(n^2) algorithm if n ≈ m."
+            }
+        ]},
+        {"stage_step": [
+            {
+                "description": "Now that you've optimized the structure, check how this affects performance under 1000 concurrent requests.",
+                "hint": "How can you measure the performance impact of your changes?",
+                "correct_response": "Compare execution time and confirm speedup."
+            }
+        ]}
+    ],
+    "tones": [
+        "Analytical and strategic, encouraging performance-oriented thinking.",
+        "Inquisitive and challenging, promoting deep understanding of optimization strategies."
+    ]
+}

@@ -9,7 +9,7 @@ class Chatbot:
         self.stage = "Initial"
         self.llm = None
         self.view = None
-    
+
     def set_view(self, view):
         self.view = view
 
@@ -37,7 +37,7 @@ class Chatbot:
                 self.view.progress_bar_percentage(95, 101, "Finishing up...")
                 self.view.progress_bar_delete()
                 
-                return "Loop scenario selected. Here is the scenario description:\n" + self.llm.get_stage_description()
+                return "Loop scenario selected.\n\n Here is the scenario description:\n\n" + self.llm.get_stage_description()
             else:
                 return "Invalid option. Please choose from the options provided.\n1. Loop Scenario"
             
