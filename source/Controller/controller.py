@@ -64,10 +64,13 @@ class LLM:
         self.tones = data["tones"]
         self.stage_correct_response = []
         self.stage_correct_response_check = []
-        self.current_stage = 1
+        self.stage_informations = []
+        self.current_stage = 0
+        self.optionals = data["all_optional"]
         for stage in self.stages:
-            self.stage_correct_response.append([step["correct_response"] for step in stage["stage_step"]])
-            self.stage_correct_response_check.append([False] * len(stage["stage_step"]))
+            self.stage_informations.append(stage["stage_step"][0])
+            self.stage_correct_response.append([step["correct_response"] for step in stage["stage_step"][1:]])
+            self.stage_correct_response_check.append([False] * len(stage["stage_step"][1:]))
 
     def _load_api_keys(self):
         with open('source/API.txt', 'r') as file:
@@ -283,6 +286,7 @@ class LLM:
                     prompt_template += f"""
                 ### Stage {i+1}:"""
                     first = False
+                    continue
 
                 prompt_template += f"""
                 ## Step {i+1}.{j+1}:
@@ -321,50 +325,76 @@ class LLM:
         bar_change(5, 15, "Is it a question\important?")
         is_question = self.is_question(user_input)
         is_important = self.is_important(user_input, is_question)
-        completed, self.current_stage = self.check_stage_completion() #if not question
+        is_info, final_prompt = self.check_optional(user_input)
+
+        if not is_question:
+            completed, self.current_stage = self.check_stage_completion()
+
 
         # Check if the stage is completed
         if completed:
             bar_change(15, 101, "Ending stage.")
             return "End"
+        
+        if not is_info:
+            if is_important:
+                # Step 3: Handle important input
+                bar_change(15, 20, "Generating CoT response...")
+                cot_answer = self.generate_cot_response(user_input, is_question, temp_text)
 
-        if is_important:
-            # Step 3: Handle important input
-            bar_change(15, 20, "Generating CoT response...")
-            cot_answer = self.generate_cot_response(user_input, is_question, temp_text)
+                bar_change(20, 30, "Performing self-consistency checks...")
+                middle_prompt = self.self_consistency(user_input, cot_answer, 3, temp_text)
+            else:
+                # Step 4: Handle non-important input
+                bar_change(15, 25, "Redirecting user...")
+                middle_prompt = self.redirect_user(user_input, temp_text)
 
-            bar_change(20, 30, "Performing self-consistency checks...")
-            self_consistency1 = self.self_consistency(user_input, cot_answer, 3, temp_text)
-
+            # Step 5: Refine response
             bar_change(40, 50, "Generating feedback and refining response...")
-            feedback1 = self.feedback(user_input, self_consistency1, temp_text, docs)
-            refine1 = self.refine(self_consistency1, user_input, feedback1, temp_text)
-        else:
-            # Step 4: Handle non-important input
-            bar_change(15, 25, "Redirecting user...")
-            redirect = self.redirect_user(user_input, temp_text)
+            feedback1 = self.feedback(user_input, middle_prompt, temp_text, docs)
+            refine1 = self.refine(middle_prompt, user_input, feedback1, temp_text)
 
-            bar_change(40, 50, "Generating feedback and refining response...")
-            feedback1 = self.feedback(user_input, redirect, temp_text, docs)
-            refine1 = self.refine(redirect, user_input, feedback1, temp_text)
-
-        # Step 5: Refine response (second iteration)
-        bar_change(60, 70, "Generating feedback and refining response...")
-        feedback2 = self.feedback(user_input, refine1, temp_text, docs)
-        refine2 = self.refine(refine1, user_input, feedback2, temp_text)
+            bar_change(60, 70, "Generating feedback and refining response...")
+            feedback2 = self.feedback(user_input, refine1, temp_text, docs)
+            final_prompt = self.refine(refine1, user_input, feedback2, temp_text)
 
         # Step 6: Finalize response
         bar_change(85, 90, "Finalizing response...")
-        if is_question or is_important:
-            next_steps = self.next_steps(user_input, refine2, temp_text)
-            refine2 = refine2 + "\n\nNext Steps: " + next_steps
+        if is_question or is_important or is_info:
+            next_steps = self.next_steps(user_input, final_prompt, temp_text)
+            final_prompt = final_prompt + "\n\nNext Steps: " + next_steps
 
         # Step 7: Update conversation history
         bar_change(95, 100, "Response generated.")
-        self.update_conversation_history(refine2, user_input)
+        self.update_conversation_history(final_prompt, user_input)
 
-        return refine2
+        return final_prompt
         
+    def check_optional(self, user_input):
+        prompt = f"""
+        You are given a sentence and a list of strings. Determine whether the sentence belongs in the list of strings. Respond with "true" if a match is found, and "false" otherwise.
+
+        Sentence: {user_input}
+        List of strings: {self.optionals + self.stage_informations[self.current_stage]}
+        """
+        response = self.client.chat.completions.create(
+            model=self.llm_name,
+            messages=[{"role": "user", "content": prompt + user_input}]
+        )
+        if response.choices[0].message.content.strip().lower() == "true":
+            prompt = f"""
+            You are given a sentence and a list of strings. Extract and give all the information from the list of strings to answer the question from the sentence. Respond only with the information needed to answer the question.
+
+            Sentence: {user_input}
+            List of strings: {self.optionals + self.stage_informations[self.current_stage]}
+            """
+            response = self.client.chat.completions.create(
+                model=self.llm_name,
+                messages=[{"role": "user", "content": prompt + user_input}]
+            )
+            return True, response.choices[0].message.content
+        
+        return False, ""
 
     # Helper Methods
     def prepare_conversation_history(self):
@@ -667,15 +697,16 @@ class LLM:
         You are guiding a user through a scenario-based learning task by giving subtle, role-appropriate hints.
 
         Context:
-        Role: {self.user_role} | Scenario: "{self.scenario_name}" | Stage: {self.current_stage}
+        Role: {self.user_role} | Scenario: "{self.scenario_name}" | Stage: {self.current_stage + 1}
         Last action: "{user_action}"
         Your last response: "{previous_ai_response}"
 
         Next Steps Description:
         """
+        
         for index, complete in enumerate(self.stage_correct_response_check[self.current_stage]):
             if not complete:
-                hint_prompt += f"""{index}: {self.stages[self.current_stage][index]}\n"""
+                hint_prompt += f"""{index}: {self.stages[self.current_stage]["stage_step"][index + 1]}\n"""
 
         hint_prompt += f"""
         Instructions:

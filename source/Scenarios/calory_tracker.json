@@ -12,6 +12,7 @@
     "positive_feedback": "Nice! Asking for the number of meals gives structure to the loop.",
     "constructive_feedback": "Think about what you need to loop through before collecting input repeatedly.",
     "next_stage_condition": "Proceed once the user decides to prompt for meal count and plans to loop through input.",
+    "all_optional": [],
     "stages": [
         {"stage_step": [
             [],

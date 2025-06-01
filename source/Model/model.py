@@ -15,8 +15,8 @@ class Chatbot:
 
     def set_llm(self, llm):
         self.llm = LLM(llm)
-        self.view.progress_bar_percentage(40, 60, "Loading RAG...")
-        LLM.build_index(self.llm)
+        # self.view.progress_bar_percentage(40, 60, "Loading RAG...")
+        # LLM.build_index(self.llm)
 
     def get_response(self, user_input):
         user = user_input.lower()
@@ -32,7 +32,7 @@ class Chatbot:
 
                 self.view.progress_bar_percentage(1, 30, "Loading loop scenario...")
 
-                self.set_llm('source\\Scenarios\\loop.json')
+                self.set_llm('source\\Scenarios\\calory_tracker.json')
 
                 self.view.progress_bar_percentage(95, 101, "Finishing up...")
                 self.view.progress_bar_delete()

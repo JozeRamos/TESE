@@ -12,6 +12,16 @@
     "positive_feedback": "Excellent decision! You prioritized time-sensitive interventions and considered stroke guidelines.",
     "constructive_feedback": "Consider the timing of symptom onset and contraindications before administering thrombolysis.",
     "next_stage_condition": "Once the patient is stabilized and all imaging/lab results are reviewed, proceed to definitive therapy.",
+    "all_optional": [
+      "Ask for modified Rankin scale (mRankin): In terms of autonomy, the patient has a modified Rankin score of 0.",
+      "Make an ECG: His ECG shows atrial fibrillation.",
+      "Measure gasometry: gasometry / arterial blood gas (ABG) was unremarkable.",
+      "Ask for NIHSS: NIHSS score is 7.",
+      "Ask for allergies: The patient has has no know allergies",
+      "Ask for previous surgeries or trauma: he had no recent major trauma, no recent traumatic brain injury, no recent major surgery, no recent major bleeding, no recent gastrointestinal bleeding.  The patient has no other medical conditions or relevant antecedents.",
+      "Ask for previous stroke, myocardial infarction or vascular events: no recent stroke, no recent myocardial infarction.",
+      "Ask for troponine: troponine is negative."
+    ],
     "stages": [
         {
             "stage_step": [

@@ -13,6 +13,7 @@
     "positive_feedback": "You're on the right track! Recursion needs a well-defined stopping point.",
     "constructive_feedback": "Something is missing that tells the function when to stop. What could it be?",
     "next_stage_condition": "Proceed only if the user correctly identifies a flaw in the function's base case or recursive step.",
+    "all_optional": [],
     
     "stages": [
         {"stage_step":

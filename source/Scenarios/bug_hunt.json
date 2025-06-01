@@ -13,6 +13,7 @@
     "positive_feedback": "Great thinking! Starting with the grade calculation helps identify whether the problem is logic-based or data-related.",
     "constructive_feedback": "Try to narrow down whether the issue is with the data being read correctly or the way it's processed in the functions.",
     "next_stage_condition": "Proceed once the user identifies a suspicious calculation or return statement that might result in incorrect grades.",
+    "all_optional": [],
     
     "stages": [
         {

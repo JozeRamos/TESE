@@ -12,6 +12,7 @@
     "positive_feedback": "Exactly! Using better data structures can drastically reduce lookup time.",
     "constructive_feedback": "Looping through every option is costly. Is there a way to index drivers by proximity?",
     "next_stage_condition": "Proceed if the user suggests a spatial or priority-based structure like heaps or maps.",
+    "all_optional": [],
     "stages": [
         {"stage_step": [
             [],
