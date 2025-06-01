@@ -2,8 +2,4 @@ EndNote/
 source/API.txt
 processed_data.pkl
 embeds.pkl
-source/View/__pycache__/view.cpython-311.pyc
-source/Model/__pycache__/model.cpython-311.pyc
-source/Controller/__pycache__/controller.cpython-311.pyc
-Library/My EndNote Library.Data/sdb/sdb.eni
 source/Scenarios/MED.json
