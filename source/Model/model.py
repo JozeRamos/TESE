@@ -1,5 +1,6 @@
 from View.view import ChatbotGUI
 from Controller.controller import LLM
+import os
 
 _chatbot_instance = None
 _gui_instance = None
@@ -32,7 +33,7 @@ class Chatbot:
 
                 self.view.progress_bar_percentage(1, 30, "Loading loop scenario...")
 
-                self.set_llm('source\\Scenarios\\calory_tracker.json')
+                self.set_llm(os.path.join('source', 'Scenarios', 'calory_tracker.json'))
 
                 self.view.progress_bar_percentage(95, 101, "Finishing up...")
                 self.view.progress_bar_delete()
