@@ -26,10 +26,15 @@ class LLM:
         self.pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
         # Encoder
-        self.encoder = HuggingFaceEncoder(
-            name="sentence-transformers/all-MiniLM-L6-v2",
-            device="cuda"  # <-- Forces GPU usage
-        )
+        try:
+            self.encoder = HuggingFaceEncoder(
+                name="sentence-transformers/all-MiniLM-L6-v2",
+                device="cuda"  # <-- Forces GPU usage
+            )
+        except Exception as e:
+            self.encoder = HuggingFaceEncoder(
+                name="sentence-transformers/all-MiniLM-L6-v2"
+            )
         
         # Chat history
         self.chat_history = []
