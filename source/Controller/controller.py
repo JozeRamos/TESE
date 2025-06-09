@@ -73,9 +73,13 @@ class LLM:
             self.stage_correct_response_check.append([False] * len(stage["stage_step"][1:]))
 
     def _load_api_keys(self):
-        with open('source/API.txt', 'r') as file:
+        api_file_path = os.path.join('source', 'API.txt')
+        api2_file_path = os.path.join('source', 'API2.txt')
+
+        with open(api_file_path, 'r') as file:
             os.environ["GROQ_API_KEY"] = file.read().strip()
-        with open('source/API2.txt', 'r') as file:
+
+        with open(api2_file_path, 'r') as file:
             os.environ["PINECONE_API_KEY"] = file.read().strip()
 
 
