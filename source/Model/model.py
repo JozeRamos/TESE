@@ -24,21 +24,57 @@ class Chatbot:
 
         if self.stage == "Initial":
             self.stage = "Options"
-            return "Choose a scenario:\n1. Loop Scenario"
+            return "Choose a scenario:\n1. Calory Tracker\n2. Bug Hunt\n3. Ride Sharing\n4. Medicine"
         
         elif self.stage == "Options":
             if user == "1":
                 self.stage = "loop"
                 self.view.progress_bar_create()
 
-                self.view.progress_bar_percentage(1, 30, "Loading loop scenario...")
+                self.view.progress_bar_percentage(1, 30, "Calory Tracker scenario...")
 
                 self.set_llm(os.path.join('source', 'Scenarios', 'calory_tracker.json'))
 
                 self.view.progress_bar_percentage(95, 101, "Finishing up...")
                 self.view.progress_bar_delete()
                 
-                return "Loop scenario selected.\n\n Here is the scenario description:\n\n" + self.llm.get_stage_description()
+                return "Calory Tracker scenario selected.\n\n Here is the scenario description:\n\n" + self.llm.get_stage_description()
+            elif user == "2":
+                self.stage = "loop"
+                self.view.progress_bar_create()
+
+                self.view.progress_bar_percentage(1, 30, "Bug Hunt scenario...")
+
+                self.set_llm(os.path.join('source', 'Scenarios', 'bug_hunt.json'))
+
+                self.view.progress_bar_percentage(95, 101, "Finishing up...")
+                self.view.progress_bar_delete()
+                
+                return "Bug Hunt scenario selected.\n\n Here is the scenario description:\n\n" + self.llm.get_stage_description()
+            elif user == "3":
+                self.stage = "loop"
+                self.view.progress_bar_create()
+
+                self.view.progress_bar_percentage(1, 30, "Ride Sharing scenario...")
+
+                self.set_llm(os.path.join('source', 'Scenarios', 'ride_sharing.json'))
+
+                self.view.progress_bar_percentage(95, 101, "Finishing up...")
+                self.view.progress_bar_delete()
+                
+                return "Ride Sharing scenario selected.\n\n Here is the scenario description:\n\n" + self.llm.get_stage_description()
+            elif user == "4":
+                self.stage = "loop"
+                self.view.progress_bar_create()
+
+                self.view.progress_bar_percentage(1, 30, "Medicine scenario...")
+
+                self.set_llm(os.path.join('source', 'Scenarios', 'medicine.json'))
+
+                self.view.progress_bar_percentage(95, 101, "Finishing up...")
+                self.view.progress_bar_delete()
+                
+                return "Medicine scenario selected.\n\n Here is the scenario description:\n\n" + self.llm.get_stage_description()
             else:
                 return "Invalid option. Please choose from the options provided.\n1. Loop Scenario"
             

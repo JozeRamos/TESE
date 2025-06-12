@@ -380,16 +380,36 @@ class LLM:
         return final_prompt
         
     def check_optional(self, user_input):
+        items_before_colon = [item.split(":")[0] for item in self.optionals + self.stage_informations[self.current_stage]]
         prompt = f"""
-        You are given a sentence and a list of strings. Determine whether the sentence belongs in the list of strings. Respond with "true" if a match is found, and "false" otherwise.
+        You are given a sentence and a list of strings. Respond with "true" if the sentence either:
+        1. Exactly matches one of the strings in the list,
+        **or**
+        2. Is a question that requests the list itself.
+
+        Otherwise, respond with "false".
 
         Sentence: {user_input}
-        List of strings: {self.optionals + self.stage_informations[self.current_stage]}
+        List of strings: {items_before_colon}
         """
+
+
         response = self.client.chat.completions.create(
             model=self.llm_name,
             messages=[{"role": "user", "content": prompt + user_input}]
         )
+
+        # Extract token usage from the response
+        Time = response.usage.total_time
+        prompt_tokens = response.usage.prompt_tokens
+        completion_tokens = response.usage.completion_tokens
+        total_tokens = response.usage.total_tokens
+
+        print(f"\nCheck_optional first:\nTime Taken: {Time}")
+        print(f"Prompt tokens: {prompt_tokens}")
+        print(f"Completion tokens: {completion_tokens}")
+        print(f"Total tokens: {total_tokens}\n")
+
         if response.choices[0].message.content.strip().lower() == "true":
             prompt = f"""
             You are given a sentence and a list of strings. Extract and give all the information from the list of strings to answer the question from the sentence. Respond only with the information needed to answer the question.
@@ -401,6 +421,17 @@ class LLM:
                 model=self.llm_name,
                 messages=[{"role": "user", "content": prompt + user_input}]
             )
+            # Extract token usage from the response
+            Time = response.usage.total_time
+            prompt_tokens = response.usage.prompt_tokens
+            completion_tokens = response.usage.completion_tokens
+            total_tokens = response.usage.total_tokens
+
+            print(f"\nCheck_optional second:\nTime Taken: {Time}")
+            print(f"Prompt tokens: {prompt_tokens}")
+            print(f"Completion tokens: {completion_tokens}")
+            print(f"Total tokens: {total_tokens}\n")
+
             return True, response.choices[0].message.content
         
         return False, ""
