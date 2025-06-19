@@ -3,3 +3,4 @@ source/API.txt
 processed_data.pkl
 embeds.pkl
 source/Scenarios/MED.json
+tutor-thesis-vm_key.pem
