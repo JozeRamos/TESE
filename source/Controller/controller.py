@@ -11,6 +11,8 @@ from groq import Client
 from sentence_transformers import SentenceTransformer
 import joblib
 from concurrent.futures import ThreadPoolExecutor
+import requests
+from urllib.parse import urlencode, quote
 
 
 class LLM:
@@ -24,6 +26,8 @@ class LLM:
         self._load_api_keys()
         self.client = Client(api_key=os.getenv("GROQ_API_KEY"))
         self.pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+
+        self.base_url = "http://20.229.187.95:8000/api/9cbcfbcc-fd93-4b5b-a7f2-956f5c2d48ff/llm_completion"
 
         # Encoder
         try:
@@ -40,6 +44,10 @@ class LLM:
         self.chat_history = []
 
         self.llm_name = "llama3-70b-8192"
+        self.provider = "groq"
+        self.host = '20.229.187.95'
+        self.port = '8000'
+        self.token = '9cbcfbcc-fd93-4b5b-a7f2-956f5c2d48ff'
 
         # Just connect to the index if it exists
         self.index_name = "groq-llama-3-rag"
@@ -76,7 +84,10 @@ class LLM:
             self.stage_informations.append(stage["stage_step"][0])
             self.stage_correct_response.append([step["correct_response"] for step in stage["stage_step"][1:]])
             self.stage_correct_response_check.append([False] * len(stage["stage_step"][1:]))
-
+    
+    def get_stage_description(self):
+        return self.stage_description
+    
     def _load_api_keys(self):
         api_file_path = os.path.join('source', 'API.txt')
         api2_file_path = os.path.join('source', 'API2.txt')
@@ -201,48 +212,6 @@ class LLM:
             to_upsert = list(zip(batch["id"], chunk_batch, batch["metadata"]))
             self.index.upsert(vectors=to_upsert)
 
-
-    def get_ai_role(self):
-        return self.ai_role
-
-    def get_user_role(self):
-        return self.user_role
-
-    def get_scenario_name(self):
-        return self.scenario_name
-
-    def get_ai_persona(self):
-        return self.ai_persona
-
-    def get_place(self):
-        return self.place
-
-    def get_task(self):
-        return self.task
-
-    def get_format(self):
-        return self.format
-
-    def get_exemplar(self):
-        return self.exemplar
-
-    def get_stage_description(self):
-        return self.stage_description
-
-    def get_hint(self):
-        return self.hint
-
-    def get_positive_feedback(self):
-        return self.positive_feedback
-
-    def get_next_stage_condition(self):
-        return self.next_stage_condition
-
-    def get_stages(self):
-        return self.stages
-
-    def get_tones(self):
-        return self.tones
     
     def get_docs(self, query: str, top_k: int) -> list[str]:
         # encode query
@@ -329,21 +298,21 @@ class LLM:
         bar_change(0, 5, "Is it a question?")
         temp_text = self.prepare_conversation_history()
         docs = self.get_docs(user_input, 3)
+        is_question = self.is_question(user_input)
 
         # Step 2: Determine input type
         bar_change(5, 15, "Is it a question\important?")
-        is_question = self.is_question(user_input)
         is_important = self.is_important(user_input, is_question)
         is_info, final_prompt = self.check_optional(user_input)
+
 
         if not is_question:
             completed, self.current_stage = self.check_stage_completion()
 
 
-        # Check if the stage is completed
-        if completed:
-            bar_change(15, 101, "Ending stage.")
-            return "End"
+            if completed:
+                bar_change(15, 101, "Ending stage.")
+                return "End"
         
         if not is_info:
             if is_important:
@@ -394,45 +363,56 @@ class LLM:
         """
 
 
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": prompt + user_input}]
-        )
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": prompt + user_input}]
+        # )
 
-        # Extract token usage from the response
-        Time = response.usage.total_time
-        prompt_tokens = response.usage.prompt_tokens
-        completion_tokens = response.usage.completion_tokens
-        total_tokens = response.usage.total_tokens
+        data = json.dumps({"prompt": prompt, "provider": self.provider, "model": self.llm_name})
+        response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
 
-        print(f"\nCheck_optional first:\nTime Taken: {Time}")
-        print(f"Prompt tokens: {prompt_tokens}")
-        print(f"Completion tokens: {completion_tokens}")
-        print(f"Total tokens: {total_tokens}\n")
 
-        if response.choices[0].message.content.strip().lower() == "true":
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        # print("---------------------------------------------------------------")
+        # print(f"\nCheck_optional first:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
+
+        if response.json()["answer"].strip().lower() == "true":
             prompt = f"""
             You are given a sentence and a list of strings. Extract and give all the information from the list of strings to answer the question from the sentence. Respond only with the information needed to answer the question.
 
             Sentence: {user_input}
             List of strings: {self.optionals + self.stage_informations[self.current_stage]}
             """
-            response = self.client.chat.completions.create(
-                model=self.llm_name,
-                messages=[{"role": "user", "content": prompt + user_input}]
-            )
-            # Extract token usage from the response
-            Time = response.usage.total_time
-            prompt_tokens = response.usage.prompt_tokens
-            completion_tokens = response.usage.completion_tokens
-            total_tokens = response.usage.total_tokens
 
-            print(f"\nCheck_optional second:\nTime Taken: {Time}")
-            print(f"Prompt tokens: {prompt_tokens}")
-            print(f"Completion tokens: {completion_tokens}")
-            print(f"Total tokens: {total_tokens}\n")
+            
+            data = json.dumps({"prompt": prompt, "provider": self.provider, "model": self.llm_name})
+            response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
 
-            return True, response.choices[0].message.content
+            # response = self.client.chat.completions.create(
+            #     model=self.llm_name,
+            #     messages=[{"role": "user", "content": prompt + user_input}]
+            # )
+            # # Extract token usage from the response
+            # Time = response.usage.total_time
+            # prompt_tokens = response.usage.prompt_tokens
+            # completion_tokens = response.usage.completion_tokens
+            # total_tokens = response.usage.total_tokens
+
+            # print("---------------------------------------------------------------")
+            # print(f"\nCheck_optional second:\nTime Taken: {Time}")
+            # print(f"Prompt tokens: {prompt_tokens}")
+            # print(f"Completion tokens: {completion_tokens}")
+            # print(f"Total tokens: {total_tokens}\n")
+
+            return True, response.json()["answer"]
         
         return False, ""
 
@@ -528,11 +508,38 @@ class LLM:
         "Answer: -1\n"
         "---\n"
         )
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": prompt + user_input}]
-        )
-        response = int(response.choices[0].message.content)
+
+
+        data = json.dumps({"prompt": prompt, "provider": self.provider, "model": self.llm_name})
+        response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
+
+
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": prompt + user_input}]
+        # )
+
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        try:
+            response = int(response.json()["answer"])
+        except ValueError:
+            for i in range(-1, len(self.stage_correct_response[self.current_stage])):
+                if str(i) in response.json()["answer"]:
+                    response = i
+                    break
+        
+        
+
+        # print("---------------------------------------------------------------")
+        # print(f"\Is_important:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
 
         if response == -1:
             return False
@@ -556,12 +563,28 @@ class LLM:
         Respond with True if it's a question, otherwise respond with False.
         """
 
+        
+        data = json.dumps({"prompt": user_input_prompt, "provider": self.provider, "model": self.llm_name})
+        content = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
 
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": user_input_prompt}]
-        )
-        content = response.choices[0].message.content.strip().lower()
+
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": user_input_prompt}]
+        # )
+        # content = response.choices[0].message.content.strip().lower()        
+        
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        # print("---------------------------------------------------------------")
+        # print(f"\nIs_question:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
 
         if content == "true":
             return True
@@ -591,13 +614,30 @@ class LLM:
         Be concise, immersive, and educational.
         """
 
+        
+        data = json.dumps({"prompt": chat_history + cot_agent_prompt, "provider": self.provider, "model": self.llm_name})
+        response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
 
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": chat_history + cot_agent_prompt}]
-        )
 
-        return response.choices[0].message.content
+
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": chat_history + cot_agent_prompt}]
+        # )
+        
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        # print("---------------------------------------------------------------")
+        # print(f"\nGenerate_cot_response:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
+
+        return response.json()["answer"]
     
     
     def self_consistency(self, user_input, previous_ai_response, num_variations, chat_history):
@@ -627,11 +667,30 @@ class LLM:
         Output:
         A single, refined response grounded in CoT consistency and learning impact with less than 100 words.
         """
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": chat_history + self_consistency_prompt}]
-        )
-        return response.choices[0].message.content
+
+        
+        data = json.dumps({"prompt": chat_history + self_consistency_prompt, "provider": self.provider, "model": self.llm_name})
+        response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
+
+
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": chat_history + self_consistency_prompt}]
+        # )
+        
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        # print("---------------------------------------------------------------")
+        # print(f"\nSelf_consistency:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
+
+        return response.json()["answer"]
     
     
     def feedback(self, user_input, previous_ai_response, chat_history, docs):
@@ -661,11 +720,28 @@ class LLM:
 
         Use the following documents (if relevant) to help you with the feedback, if they are not relevant, ignore them:\n\n{docs}
         """
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": chat_history + feedback_prompt}]
-        )
-        return response.choices[0].message.content
+
+        data = json.dumps({"prompt": chat_history + feedback_prompt, "provider": self.provider, "model": self.llm_name})
+        response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
+
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": chat_history + feedback_prompt}]
+        # )
+        
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        # print("---------------------------------------------------------------")
+        # print(f"\nFeedback:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
+        
+        return response.json()["answer"]
 
     def refine(self, previous_ai_response, user_input, self_feedback, chat_history):
         refinement_prompt = f"""\nCurrent Prompt:
@@ -689,11 +765,29 @@ class LLM:
         Provide an improved version of your original response, ensuring it meets the refinement criteria while preserving scenario immersion and with less than 100 words.
         Strict rule: Do not include any introductory phrases—respond only with the raw hint text.
         """
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": chat_history + refinement_prompt}]
-        )
-        return response.choices[0].message.content
+        
+        data = json.dumps({"prompt": chat_history + refinement_prompt, "provider": self.provider, "model": self.llm_name})
+        response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
+
+
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": chat_history + refinement_prompt}]
+        # )
+        
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        # print("---------------------------------------------------------------")
+        # print(f"\nRefine:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
+
+        return response.json()["answer"]
     
     def redirect_user(self, user_input, chat_history):
         hint_prompt = f"""\nCurrent Prompt:
@@ -726,11 +820,28 @@ class LLM:
         Reply as a single, immersive hint (under 100 words), written in-character. Be supportive, focused, and subtly guide the learner toward better reasoning whithout revealing the answer.
         Make sure to say to the user that they are not aligned with the scenario or task at hand.
         """
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": chat_history[0] + chat_history[-6:] + hint_prompt}]
-        )
-        return response.choices[0].message.content
+
+        data = json.dumps({"prompt": chat_history + hint_prompt, "provider": self.provider, "model": self.llm_name})
+        response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
+
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": chat_history + hint_prompt}]
+        # )
+        
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        # print("---------------------------------------------------------------")
+        # print(f"\nRedirect_user:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
+
+        return response.json()["answer"]
 
     def next_steps(self, user_action, previous_ai_response, chat_history):
         hint_prompt = f"""\nCurrent Prompt:
@@ -762,9 +873,26 @@ class LLM:
         Output:
         One immersive, hint-based response—subtle, clear, and pedagogically effective with less than 100 words.
         """
-        response = self.client.chat.completions.create(
-            model=self.llm_name,
-            messages=[{"role": "user", "content": chat_history + hint_prompt}]
-        )
-        return response.choices[0].message.content
+        
+        data = json.dumps({"prompt": chat_history + hint_prompt, "provider": self.provider, "model": self.llm_name})
+        response = requests.post(f"http://{self.host}:{self.port}/api/{self.token}/llm_completion", data=data, headers={"Content-Type": "application/json"})
+
+        # response = self.client.chat.completions.create(
+        #     model=self.llm_name,
+        #     messages=[{"role": "user", "content": chat_history + hint_prompt}]
+        # )
+        
+        # # Extract token usage from the response
+        # Time = response.usage.total_time
+        # prompt_tokens = response.usage.prompt_tokens
+        # completion_tokens = response.usage.completion_tokens
+        # total_tokens = response.usage.total_tokens
+
+        # print("---------------------------------------------------------------")
+        # print(f"\nNext_steps:\nTime Taken: {Time}")
+        # print(f"Prompt tokens: {prompt_tokens}")
+        # print(f"Completion tokens: {completion_tokens}")
+        # print(f"Total tokens: {total_tokens}\n")
+
+        return response.json()["answer"]
     
