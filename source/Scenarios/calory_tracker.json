@@ -7,40 +7,73 @@
     "task": "Create a program that takes calorie input from the user for each meal and summarizes daily intake with a health message.",
     "format": "Step-by-step text-based scenario where you build a basic loop-driven input program using conditionals and arithmetic.",
     "exemplar": "User: 'Ill use a loop to gather meal data' → AI: 'Great thinking! That keeps your code efficient and avoids repetition.'",
-    "stage_description": "Youre building a calorie tracker. It should ask how many meals were eaten, take calorie inputs, then give feedback based on total calories. Whats the first part youll implement?",
+    "stage_description": "You're building a calorie tracker. It should ask how many meals were eaten, take calorie inputs, then give feedback based on total calories. What's the first part you'll implement?\n\nFor this scenario you don't need to write code, you can just state what you would do to complete the task.",
     "hint": "Start with asking the user how many meals they had.",
     "positive_feedback": "Nice! Asking for the number of meals gives structure to the loop.",
     "constructive_feedback": "Think about what you need to loop through before collecting input repeatedly.",
     "next_stage_condition": "Proceed once the user decides to prompt for meal count and plans to loop through input.",
-    "all_optional": [],
+    "all_optional": [
+        "What do I need to do: Ask how many meals were eaten, take calorie inputs and then give feedback based on total calories."
+    ],
     "stages": [
         {"stage_step": [
-            [],
+            [
+                "What does the code look like: No code has been provided yet."
+            ],
             {
                 "description": "Ask the user how many meals they had today and store that number in a variable.",
                 "hint": "How do you get user input in Python?",
                 "correct_response": "Prompt for the number of meals and save the input as an integer."
-            }
-        ]},
-        {"stage_step": [
-            [],
-            {
-                "description": "Now loop through each meal and ask the user to enter the number of calories.",
-                "hint": "How do you get all the calorie inputs in a single run?",
-                "correct_response": "Use a loop to ask for calorie input and sum the values."
             },
             {
-                "description": "Store and sum the calories.",
-                "hint": "How do you keep track of the total calories?",
-                "correct_response": "Initialize a total variable and add each meal's calories to it."
+                "description": "Initialize the total variable.",
+                "hint": "How do store the total value of calories?",
+                "correct_response": "Initialize a total variable to store the sum of calories."
             }
         ]},
         {"stage_step": [
-            [],
+            [
+                "What does the code look like:\nnumberOfMeals = input()\ntotalCalories = 0"
+            ],
+            {
+                "description": "Now loop through each meal in a loop.",
+                "hint": "How do you get all the calorie inputs in a single run?",
+                "correct_response": "Use a loop to ask for calorie input."
+            }
+        ]},
+        {"stage_step": [
+            [
+                "What does the code look like:\nnumberOfMeals = input()\ntotalCalories = 0\nfor i in range(numberOfMeals):"
+            ],
+            {
+                "description": "Inside the loop, ask for the calories of each meal.",
+                "hint": "How do you collect input for each meal's calories?",
+                "correct_response": "Use input() to get calorie data for each meal."
+            },
+            {
+                "description": "Sum the calories.",
+                "hint": "How do you add the total calories?",
+                "correct_response": "Add each meal's calories to the totalCalories variable."
+            }
+        ]},
+        {"stage_step": [
+            [
+                "What does the code look like:\nnumberOfMeals = input()\ntotalCalories = 0\nfor i in range(numberOfMeals):\n    mealCalories = input()\n    totalCalories += mealCalories"
+            ],
             {
                 "description": "Output the total calories and give a message based on the total.",
                 "hint": "Now that you have the total, how will you provide the feedback?",
                 "correct_response": "Display total and use if/elif/else to give personalized feedback."
+            }
+        ]},
+        {"stage_step": [
+            [
+                "What does the code look like:\nnumberOfMeals = input()\ntotalCalories = 0\nfor i in range(numberOfMeals):\n    mealCalories = input()\n    totalCalories += mealCalories\nif totalCalories < 2000:\n    print('Great job! You stayed under the recommended daily calories.')\nelif totalCalories < 2500:\n    print('Good job! You are close to the recommended daily calories.')\nelse:\n    print('You might want to watch your calorie intake.')"
+            ],
+            {
+                "description": "Make user input robust.",
+                "hint": "Everything is done, now how do you prevent from the user writing invalid input like '-2'?",
+                "correct_response": "Use a loop with a if inside that prevents input from being less than 0."
             }
         ]}
     ],

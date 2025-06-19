@@ -12,34 +12,48 @@
     "positive_feedback": "Exactly! Using better data structures can drastically reduce lookup time.",
     "constructive_feedback": "Looping through every option is costly. Is there a way to index drivers by proximity?",
     "next_stage_condition": "Proceed if the user suggests a spatial or priority-based structure like heaps or maps.",
-    "all_optional": [],
+    "all_optional": [
+        "what does the code look like: import time\nimport random\ndrivers = [{'id': i, 'location': (random.randint(0, 100), random.randint(0, 100))} for i in range(1000)]\nriders = [{'id': j, 'location': (random.randint(0, 100), random.randint(0, 100))} for j in range(1000)]\ndef distance(a, b): return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5\ndef match_riders_to_drivers(riders, drivers): matches = []; used_drivers = set();\n for rider in riders:\n  closest_driver = None; min_dist = float('inf')\n  for driver in drivers:\n   if driver['id'] in used_drivers: continue\n   dist = distance(rider['location'], driver['location'])\n   if dist < min_dist: min_dist = dist; closest_driver = driver\n  if closest_driver: matches.append((rider['id'], closest_driver['id'])); used_drivers.add(closest_driver['id'])\n  else: matches.append((rider['id'], None))\n return matches\nstart = time.time()\nmatches = match_riders_to_drivers(riders, drivers)\nend = time.time()\nprint(f\"Matched {len(matches)} riders in {end - start:.2f} seconds.\")"
+    ],
     "stages": [
-        {"stage_step": [
-            [],
-            {
-                "description": "The current code loops through all drivers for every rider. Propose a more efficient structure.",
-                "hint": "Is there a way to not loop through all drives for every rider?",
-                "correct_response": "Suggest using spatial hashing, a k-d tree, or a heap for nearby driver selection."
-            },            
-            {
-                "description": "Why is this inefficient during high traffic times?",
-                "hint": "Think in terms of scale: what happens when thousands of requests come in?",
-                "correct_response": "Acknowledge the performance bottleneck due to nested loops and scaling issues."
-            },
-            {
-                "description": "Review the current matching method: it loops through every driver for each rider. What is the time complexity?",
-                "hint": "How many operations if there are n drivers and m riders?",
-                "correct_response": "Recognize that it's an O(n * m) or O(n^2) algorithm if n ≈ m."
-            }
-        ]},
-        {"stage_step": [
-            [],
-            {
-                "description": "Now that you've optimized the structure, check how this affects performance under 1000 concurrent requests.",
-                "hint": "How can you measure the performance impact of your changes?",
-                "correct_response": "Compare execution time and confirm speedup."
-            }
-        ]}
+        {
+            "stage_step": 
+            [
+                [],
+                {
+                    "description": "Review the current matching method: it loops through every driver for each rider. What is the time complexity?",
+                    "hint": "How many operations if there are n drivers and m riders?",
+                    "correct_response": "Recognize that it's an O(n * m) or O(n^2) algorithm if n ≈ m."
+                }
+            ]
+        },
+        {
+            "stage_step":
+            [
+                [],
+                {
+                    "description": "The current code loops through all drivers for every rider. Propose a more efficient structure.",
+                    "hint": "Is there a way to not loop through all drives for every rider?",
+                    "correct_response": "Suggest using spatial hashing, a k-d tree, or a heap for nearby driver selection."
+                },
+                {
+                    "description": "Why is this inefficient during high traffic times?",
+                    "hint": "Think in terms of scale: what happens when thousands of requests come in?",
+                    "correct_response": "Acknowledge the performance bottleneck due to nested loops and scaling issues."
+                }
+            ]
+        },
+        {
+            "stage_step": 
+            [
+                [],
+                {
+                    "description": "Now that you've optimized the structure, check how this affects performance under 1000 concurrent requests.",
+                    "hint": "How can you measure the performance impact of your changes?",
+                    "correct_response": "Compare execution time and confirm speedup."
+                }
+            ]
+        }
     ],
     "tones": [
         "Analytical and strategic, encouraging performance-oriented thinking.",
