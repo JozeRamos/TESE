@@ -11,6 +11,11 @@ class Chatbot:
         self.llm = None
         self.view = None
 
+    def reset(self):
+        self.stage = "Initial"
+        self.llm = None
+        self.view = None
+
     def set_view(self, view):
         self.view = view
 
@@ -96,7 +101,6 @@ class Chatbot:
                     return message
             else:
                 return "Invalid command."
-            
 
 def main():
     global _chatbot_instance, _gui_instance

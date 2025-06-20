@@ -2,7 +2,6 @@ import streamlit as st
 import time
 import os
 import sys
-from Model.model import _chatbot_instance, _gui_instance
 os.environ["STREAMLIT_WATCH_FILE_CHANGES"] = "false"
 sys.modules['torch.classes'] = None
 
@@ -27,9 +26,11 @@ class ChatbotGUI:
 
     def display_chat_history(self):
         if "messages" not in st.session_state:
-            _chatbot_instance = None
-            _gui_instance = None
-            return
+            self.logic.reset()
+            self.initialize_session_state(self.logic.get_response)
+            self.progress_bar = None
+            self.status_message = None
+
         """Display the chat history from the session state."""
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
