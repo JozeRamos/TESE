@@ -93,9 +93,9 @@ class Chatbot:
                 message = self.llm.logic(user_input, self.view.progress_bar_percentage)
                 self.view.progress_bar_delete()
                 if message == "End":
-                    self.stage = "Initial"
+                    self.stage = "Options"
                     self.llm = None
-                    return "Congratulations you completed the Loop scenario.\n\n"
+                    return "Congratulations you completed the scenario.\n\nChoose a new scenario:\n1. Calory Tracker\n2. Bug Hunt\n3. Ride Sharing\n4. Medicine"
                 else:
                     self.view.progress_bar_delete()
                     return message
